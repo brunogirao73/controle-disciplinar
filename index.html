@@ -16,11 +16,7 @@ input, textarea, button {
     border: 1px solid #ccc;
 }
 
-button {
-    background: #2c3e50;
-    color: white;
-    border: none;
-}
+button { background: #2c3e50; color: white; border: none; }
 
 .top-bar {
     background: white;
@@ -41,15 +37,10 @@ button {
 .pendente { border-left: 6px solid #f39c12; }
 .encerrado { border-left: 6px solid #27ae60; }
 
-.status {
-    font-weight: bold;
-    margin-top: 5px;
-}
+.status { font-weight: bold; margin-top: 5px; }
 
-.filtro-btn {
-    background: #34495e;
-    margin-top: 5px;
-}
+.small-btn { margin-top:5px; background:#34495e; }
+.danger { background:#c0392b; }
 </style>
 </head>
 
@@ -66,8 +57,11 @@ button {
 <h2>Controle Disciplinar</h2>
 
 <div class="top-bar">
-<strong id="contador"></strong>
-<button class="filtro-btn" onclick="toggleFiltro()">Mostrar Só Vencidos</button>
+<strong id="contador"></strong><br>
+<input type="text" id="pesquisa" placeholder="Pesquisar aluno..." onkeyup="carregar()">
+<button class="small-btn" onclick="toggleFiltro()">Só Vencidos</button>
+<button class="small-btn" onclick="toggleHistorico()">Ver Histórico</button>
+<button class="small-btn" onclick="exportar()">Exportar Backup</button>
 </div>
 
 <input type="text" id="nome" placeholder="Nome do Aluno">
@@ -84,6 +78,7 @@ button {
 
 const SENHA_PADRAO = "1234";
 let mostrarVencidos = false;
+let mostrarHistorico = false;
 
 function entrar(){
     if(document.getElementById("senha").value === SENHA_PADRAO){
@@ -136,11 +131,17 @@ function carregar(){
     lista.innerHTML = "";
     let dados = JSON.parse(localStorage.getItem("processos") || "[]");
     let hoje = new Date().toISOString().split("T")[0];
+    let pesquisa = document.getElementById("pesquisa").value.toLowerCase();
 
     let abertos = 0;
     let vencidos = 0;
 
     dados.forEach((p, index) => {
+
+        if(p.nome.toLowerCase().indexOf(pesquisa) === -1) return;
+
+        if(mostrarHistorico && !p.encerrado) return;
+        if(!mostrarHistorico && p.encerrado) return;
 
         let prazoAtual = p.fiodPrazo || p.fafdPrazo;
         let classe = "";
@@ -172,7 +173,7 @@ function carregar(){
         <br>
         <button onclick="registrarFIOD(${index})">Registrar FIOD</button>
         <button onclick="encerrar(${index})">Encerrar</button>
-        <button onclick="excluir(${index})" style="background:#c0392b;">Excluir</button>
+        <button onclick="excluir(${index})" class="danger">Excluir</button>
         </div>
         `;
     });
@@ -182,6 +183,7 @@ function carregar(){
 }
 
 function registrarFIOD(index){
+    if(!confirm("Confirmar registro da FIOD?")) return;
     let dados = JSON.parse(localStorage.getItem("processos"));
     let hoje = new Date().toISOString().split("T")[0];
     dados[index].fiodPrazo = calcularPrazo(hoje);
@@ -208,6 +210,21 @@ function excluir(index){
 function toggleFiltro(){
     mostrarVencidos = !mostrarVencidos;
     carregar();
+}
+
+function toggleHistorico(){
+    mostrarHistorico = !mostrarHistorico;
+    carregar();
+}
+
+function exportar(){
+    let dados = localStorage.getItem("processos") || "[]";
+    let blob = new Blob([dados], {type: "application/json"});
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement("a");
+    a.href = url;
+    a.download = "backup_controle_disciplinar.json";
+    a.click();
 }
 
 </script>
