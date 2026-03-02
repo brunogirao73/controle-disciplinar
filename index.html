@@ -2,11 +2,8 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Sistema Disciplinar</title>
+<title>Sistema Disciplinar 2.0</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<link rel="icon" href="brasao.png">
-<link rel="apple-touch-icon" href="brasao.png">
 
 <style>
 body { margin:0; font-family:Arial; background:#f4f6f5; }
@@ -23,7 +20,7 @@ body { margin:0; font-family:Arial; background:#f4f6f5; }
     position:absolute;
     width:100%;
     height:100%;
-    background:rgba(0,0,0,0.55);
+    background:rgba(0,0,0,0.6);
 }
 
 .banner-text {
@@ -56,6 +53,23 @@ button { background:#1b3a2b; color:white; border:none; }
     font-weight:bold;
 }
 
+.dashboard {
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    padding:10px;
+}
+
+.box {
+    flex:1;
+    min-width:140px;
+    background:white;
+    padding:10px;
+    border-radius:8px;
+    text-align:center;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
 .container { padding:15px; }
 
 .card {
@@ -66,26 +80,19 @@ button { background:#1b3a2b; color:white; border:none; }
     box-shadow:0 2px 5px rgba(0,0,0,0.1);
 }
 
-.vencido { border-left:5px solid red; }
-.pendente { border-left:5px solid orange; }
+.status { font-weight:bold; margin:5px 0; }
 
-.historico-bg {
-    background:#e9ecef;
-}
-
-.indicador {
-    text-align:center;
-    font-weight:bold;
-    margin:10px 0;
-}
+.vencido { color:red; }
+.prazo { color:orange; }
+.entregue { color:blue; }
+.fiod { color:purple; }
+.encerrado { color:gray; }
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
 <div id="login">
-
 <div class="banner">
 <div class="overlay"></div>
 <div class="banner-text">
@@ -99,25 +106,17 @@ Colégio Militar
 <input type="password" id="senha" placeholder="Senha">
 <button onclick="entrar()">Entrar</button>
 </div>
-
 </div>
 
-<!-- APP -->
 <div id="app" class="hidden">
 
-<div class="topbar" id="titulo">PROCESSOS ATIVOS</div>
+<div class="topbar">Painel Disciplinar</div>
+
+<div class="dashboard" id="dashboard"></div>
 
 <div class="container">
 
-<div id="indicador" class="indicador"></div>
-
-<button onclick="mostrarAtivos()">Ver Ativos</button>
-<button onclick="mostrarHistorico()">Ver Histórico</button>
-<button onclick="limparHistorico()">Limpar Histórico</button>
-
-<hr>
-
-<h3>Novo Registro</h3>
+<h3>Novo Registro FAFD</h3>
 
 <input type="text" id="nome" placeholder="Nome do Aluno">
 <input type="text" id="turma" placeholder="Turma">
@@ -127,6 +126,8 @@ Colégio Militar
 
 <hr>
 
+<button onclick="toggleHistorico()">Alternar Histórico</button>
+
 <div id="lista"></div>
 
 </div>
@@ -134,136 +135,172 @@ Colégio Militar
 
 <script>
 
-let modo="ativos";
 let SENHA="1234";
+let modo="ativos";
 
 function entrar(){
-    if(document.getElementById("senha").value===SENHA){
-        document.getElementById("login").classList.add("hidden");
-        document.getElementById("app").classList.remove("hidden");
-        carregar();
-    } else alert("Senha incorreta");
+if(document.getElementById("senha").value===SENHA){
+document.getElementById("login").classList.add("hidden");
+document.getElementById("app").classList.remove("hidden");
+carregar();
+}else alert("Senha incorreta");
 }
 
 function calcularPrazo(data){
-    let d=new Date(data);
-    let dias=0;
-    while(dias<3){
-        d.setDate(d.getDate()+1);
-        if(d.getDay()!=0 && d.getDay()!=6) dias++;
-    }
-    return d.toISOString().split("T")[0];
+let d=new Date(data);
+let dias=0;
+while(dias<3){
+d.setDate(d.getDate()+1);
+if(d.getDay()!=0 && d.getDay()!=6) dias++;
+}
+return d.toISOString().split("T")[0];
 }
 
 function adicionar(){
-    let nome=document.getElementById("nome").value;
-    let turma=document.getElementById("turma").value;
-    let data=document.getElementById("dataFafd").value;
-    let obs=document.getElementById("obs").value;
+let nome=document.getElementById("nome").value;
+let turma=document.getElementById("turma").value;
+let data=document.getElementById("dataFafd").value;
+let obs=document.getElementById("obs").value;
 
-    if(!nome||!data){ alert("Preencha nome e data"); return; }
+if(!nome||!data){ alert("Preencha nome e data"); return; }
 
-    let processo={
-        id:Date.now(),
-        nome,
-        turma,
-        obs,
-        fafdPrazo:calcularPrazo(data),
-        fiodPrazo:null,
-        resultado:null,
-        encerrado:false
-    };
+let processo={
+id:Date.now(),
+nome,
+turma,
+obs,
+fafData:data,
+fafPrazo:calcularPrazo(data),
+fase:"fafd",
+fiodPrazo:null
+};
 
-    let dados=JSON.parse(localStorage.getItem("processos")||"[]");
-    dados.push(processo);
-    localStorage.setItem("processos",JSON.stringify(dados));
-
-    carregar();
+let dados=JSON.parse(localStorage.getItem("processos")||"[]");
+dados.push(processo);
+localStorage.setItem("processos",JSON.stringify(dados));
+carregar();
 }
 
 function carregar(){
 
-    let lista=document.getElementById("lista");
-    lista.innerHTML="";
-    let dados=JSON.parse(localStorage.getItem("processos")||"[]");
-    let hoje=new Date().toISOString().split("T")[0];
+let lista=document.getElementById("lista");
+let dash=document.getElementById("dashboard");
+lista.innerHTML="";
+dash.innerHTML="";
 
-    dados.sort((a,b)=>{
-        let prazoA=a.fiodPrazo||a.fafdPrazo;
-        let prazoB=b.fiodPrazo||b.fafdPrazo;
-        return new Date(prazoA)-new Date(prazoB);
-    });
+let dados=JSON.parse(localStorage.getItem("processos")||"[]");
+let hoje=new Date().toISOString().split("T")[0];
 
-    dados.forEach(p=>{
+let contadores={
+vencido:0,
+prazo:0,
+aguardando:0,
+fiod:0,
+encerrado:0
+};
 
-        if(modo==="ativos" && p.encerrado) return;
-        if(modo==="historico" && !p.encerrado) return;
+dados.forEach(p=>{
 
-        let prazoAtual=p.fiodPrazo||p.fafdPrazo;
-        let classe=hoje>prazoAtual?"vencido":"pendente";
+if(p.fase==="fafd"){
+if(hoje>p.fafPrazo) contadores.vencido++;
+else contadores.prazo++;
+}
 
-        lista.innerHTML+=`
-        <div class="card ${classe}">
-        <strong>${p.nome}</strong> - ${p.turma}<br>
-        FAFD vence: ${p.fafdPrazo}<br>
-        ${p.fiodPrazo?"FIOD vence: "+p.fiodPrazo+"<br>Resultado: "+p.resultado+"<br>":""}
-        ${p.obs||""}<br><br>
+if(p.fase==="entregue"||p.fase==="revelia") contadores.aguardando++;
+if(p.fase==="fiod") contadores.fiod++;
+if(p.fase==="encerrado") contadores.encerrado++;
 
-        ${!p.fiodPrazo && !p.encerrado?
-        `<button onclick="registrarFIOD(${p.id})">Registrar FIOD</button>`:""}
+if(modo==="ativos" && p.fase==="encerrado") return;
+if(modo==="historico" && p.fase!=="encerrado") return;
 
-        ${p.fiodPrazo && !p.encerrado?
-        `<button onclick="encerrar(${p.id})">Encerrar Processo</button>`:""}
-        </div>`;
-    });
+let status="";
+if(p.fase==="fafd"){
+status=hoje>p.fafPrazo?"FAFD VENCIDO":"FAFD EM PRAZO";
+}
+if(p.fase==="entregue") status="AGUARDANDO FIOD (Entregue)";
+if(p.fase==="revelia") status="AGUARDANDO FIOD (Revelia)";
+if(p.fase==="fiod") status="FIOD EM PRAZO";
+if(p.fase==="encerrado") status="ENCERRADO";
 
-    document.getElementById("titulo").innerText=
-        modo==="ativos"?"PROCESSOS ATIVOS":"HISTÓRICO ENCERRADOS";
+lista.innerHTML+=`
+<div class="card">
+<strong>${p.nome}</strong> - ${p.turma}<br>
+${status}<br>
+FAFD vence: ${p.fafPrazo}<br>
+${p.fiodPrazo?"FIOD vence: "+p.fiodPrazo+"<br>":""}
+<br>
 
-    document.getElementById("indicador").innerText=
-        modo==="ativos"?"Você está visualizando PROCESSOS ATIVOS":
-        "Você está no HISTÓRICO (somente leitura)";
+${p.fase==="fafd"?`
+<button onclick="entregue(${p.id})">Aluno Entregou</button>
+<button onclick="revelia(${p.id})">Julgar à Revelia</button>
+<button onclick="excluir(${p.id})">Excluir</button>
+`:""}
+
+${(p.fase==="entregue"||p.fase==="revelia")?`
+<button onclick="registrarFIOD(${p.id})">Registrar FIOD</button>
+`:""}
+
+${p.fase==="fiod"?`
+<button onclick="encerrar(${p.id})">Encerrar Processo</button>
+`:""}
+
+</div>`;
+});
+
+dash.innerHTML=`
+<div class="box">🔴 Vencidos<br>${contadores.vencido}</div>
+<div class="box">🟡 Em Prazo<br>${contadores.prazo}</div>
+<div class="box">🔵 Aguardando FIOD<br>${contadores.aguardando}</div>
+<div class="box">🟣 FIOD<br>${contadores.fiod}</div>
+<div class="box">⚫ Encerrados<br>${contadores.encerrado}</div>
+`;
+}
+
+function entregue(id){
+let dados=JSON.parse(localStorage.getItem("processos"));
+let p=dados.find(x=>x.id===id);
+p.fase="entregue";
+localStorage.setItem("processos",JSON.stringify(dados));
+carregar();
+}
+
+function revelia(id){
+let dados=JSON.parse(localStorage.getItem("processos"));
+let p=dados.find(x=>x.id===id);
+p.fase="revelia";
+localStorage.setItem("processos",JSON.stringify(dados));
+carregar();
 }
 
 function registrarFIOD(id){
-    let dados=JSON.parse(localStorage.getItem("processos"));
-    let processo=dados.find(p=>p.id===id);
-
-    let escolha=prompt("1 - Entregue no prazo\n2 - À revelia");
-    if(escolha!=="1"&&escolha!=="2") return;
-
-    let hoje=new Date().toISOString().split("T")[0];
-
-    processo.fiodPrazo=calcularPrazo(hoje);
-    processo.resultado=(escolha==="1")?"Entregue no prazo":"À revelia";
-
-    localStorage.setItem("processos",JSON.stringify(dados));
-    carregar();
+let dados=JSON.parse(localStorage.getItem("processos"));
+let p=dados.find(x=>x.id===id);
+let hoje=new Date().toISOString().split("T")[0];
+p.fiodPrazo=calcularPrazo(hoje);
+p.fase="fiod";
+localStorage.setItem("processos",JSON.stringify(dados));
+carregar();
 }
 
 function encerrar(id){
-    let dados=JSON.parse(localStorage.getItem("processos"));
-    let processo=dados.find(p=>p.id===id);
-    processo.encerrado=true;
-    localStorage.setItem("processos",JSON.stringify(dados));
-    carregar();
+let dados=JSON.parse(localStorage.getItem("processos"));
+let p=dados.find(x=>x.id===id);
+p.fase="encerrado";
+localStorage.setItem("processos",JSON.stringify(dados));
+carregar();
 }
 
-function mostrarHistorico(){
-    modo="historico";
-    carregar();
+function excluir(id){
+if(!confirm("Excluir registro?")) return;
+let dados=JSON.parse(localStorage.getItem("processos"));
+dados=dados.filter(p=>p.id!==id);
+localStorage.setItem("processos",JSON.stringify(dados));
+carregar();
 }
 
-function mostrarAtivos(){
-    modo="ativos";
-    carregar();
-}
-
-function limparHistorico(){
-    let dados=JSON.parse(localStorage.getItem("processos")||"[]");
-    dados=dados.filter(p=>!p.encerrado);
-    localStorage.setItem("processos",JSON.stringify(dados));
-    carregar();
+function toggleHistorico(){
+modo=modo==="ativos"?"historico":"ativos";
+carregar();
 }
 
 </script>
