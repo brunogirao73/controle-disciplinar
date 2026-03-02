@@ -4,20 +4,52 @@
 <meta charset="UTF-8">
 <title>Controle Disciplinar</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
-body { font-family: Arial; margin: 20px; background: #f4f4f4; }
+body { font-family: Arial; margin: 20px; background: #eef1f5; }
 h2 { text-align: center; }
-input, button { padding: 8px; margin: 5px 0; width: 100%; }
-.card {
+
+input, textarea, button {
+    padding: 8px;
+    margin: 5px 0;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+button {
+    background: #2c3e50;
+    color: white;
+    border: none;
+}
+
+.top-bar {
     background: white;
     padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.card {
+    background: white;
+    padding: 12px;
     margin-top: 10px;
     border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
-.vencido { background: #ffcccc; }
-.pendente { background: #fff3cd; }
-.entregue { background: #d4edda; }
+
+.vencido { border-left: 6px solid #e74c3c; }
+.pendente { border-left: 6px solid #f39c12; }
+.encerrado { border-left: 6px solid #27ae60; }
+
+.status {
+    font-weight: bold;
+    margin-top: 5px;
+}
+
+.filtro-btn {
+    background: #34495e;
+    margin-top: 5px;
+}
 </style>
 </head>
 
@@ -33,9 +65,15 @@ input, button { padding: 8px; margin: 5px 0; width: 100%; }
 
 <h2>Controle Disciplinar</h2>
 
+<div class="top-bar">
+<strong id="contador"></strong>
+<button class="filtro-btn" onclick="toggleFiltro()">Mostrar Só Vencidos</button>
+</div>
+
 <input type="text" id="nome" placeholder="Nome do Aluno">
 <input type="text" id="turma" placeholder="Turma">
 <input type="date" id="dataFafd">
+<textarea id="obs" placeholder="Observações (opcional)"></textarea>
 <button onclick="adicionar()">Registrar FAFD</button>
 
 <div id="lista"></div>
@@ -45,41 +83,16 @@ input, button { padding: 8px; margin: 5px 0; width: 100%; }
 <script>
 
 const SENHA_PADRAO = "1234";
+let mostrarVencidos = false;
 
 function entrar(){
-    const senha = document.getElementById("senha").value;
-    if(senha === SENHA_PADRAO){
+    if(document.getElementById("senha").value === SENHA_PADRAO){
         document.getElementById("login").style.display = "none";
         document.getElementById("app").style.display = "block";
         carregar();
     } else {
         alert("Senha incorreta");
     }
-}
-
-function adicionar(){
-    const nome = document.getElementById("nome").value;
-    const turma = document.getElementById("turma").value;
-    const data = document.getElementById("dataFafd").value;
-
-    if(!nome || !data) return alert("Preencha os campos");
-
-    const processo = {
-        nome,
-        turma,
-        fafd: data,
-        fafdPrazo: calcularPrazo(data),
-        fafdStatus: "Pendente",
-        fiod: null,
-        fiodPrazo: null,
-        fiodStatus: null,
-        encerrado: false
-    };
-
-    let dados = JSON.parse(localStorage.getItem("processos") || "[]");
-    dados.push(processo);
-    localStorage.setItem("processos", JSON.stringify(dados));
-    carregar();
 }
 
 function calcularPrazo(data){
@@ -95,44 +108,82 @@ function calcularPrazo(data){
     return d.toISOString().split("T")[0];
 }
 
+function adicionar(){
+    const nome = document.getElementById("nome").value;
+    const turma = document.getElementById("turma").value;
+    const data = document.getElementById("dataFafd").value;
+    const obs = document.getElementById("obs").value;
+
+    if(!nome || !data) return alert("Preencha nome e data");
+
+    const processo = {
+        nome,
+        turma,
+        obs,
+        fafdPrazo: calcularPrazo(data),
+        fiodPrazo: null,
+        encerrado: false
+    };
+
+    let dados = JSON.parse(localStorage.getItem("processos") || "[]");
+    dados.push(processo);
+    localStorage.setItem("processos", JSON.stringify(dados));
+    carregar();
+}
+
 function carregar(){
     const lista = document.getElementById("lista");
     lista.innerHTML = "";
     let dados = JSON.parse(localStorage.getItem("processos") || "[]");
+    let hoje = new Date().toISOString().split("T")[0];
+
+    let abertos = 0;
+    let vencidos = 0;
 
     dados.forEach((p, index) => {
-        let hoje = new Date().toISOString().split("T")[0];
-        let classe = "";
 
-        if(!p.encerrado){
-            let prazo = p.fiodPrazo || p.fafdPrazo;
-            if(hoje > prazo){
-                classe = "vencido";
-            } else {
-                classe = "pendente";
-            }
+        let prazoAtual = p.fiodPrazo || p.fafdPrazo;
+        let classe = "";
+        let statusTexto = "";
+
+        if(p.encerrado){
+            classe = "encerrado";
+            statusTexto = "ENCERRADO";
+        } else if(hoje > prazoAtual){
+            classe = "vencido";
+            statusTexto = "VENCIDO";
+            vencidos++;
+            abertos++;
         } else {
-            classe = "entregue";
+            classe = "pendente";
+            statusTexto = "EM PRAZO";
+            abertos++;
         }
+
+        if(mostrarVencidos && statusTexto !== "VENCIDO") return;
 
         lista.innerHTML += `
         <div class="card ${classe}">
         <strong>${p.nome}</strong> - ${p.turma}<br>
         FAFD vence: ${p.fafdPrazo}<br>
         ${p.fiodPrazo ? "FIOD vence: " + p.fiodPrazo + "<br>" : ""}
-        Status: ${p.encerrado ? "Encerrado" : "Em andamento"}
-        <br><br>
+        ${p.obs ? "<em>Obs:</em> " + p.obs + "<br>" : ""}
+        <div class="status">${statusTexto}</div>
+        <br>
         <button onclick="registrarFIOD(${index})">Registrar FIOD</button>
         <button onclick="encerrar(${index})">Encerrar</button>
+        <button onclick="excluir(${index})" style="background:#c0392b;">Excluir</button>
         </div>
         `;
     });
+
+    document.getElementById("contador").innerText =
+        `Abertos: ${abertos} | Vencidos: ${vencidos}`;
 }
 
 function registrarFIOD(index){
     let dados = JSON.parse(localStorage.getItem("processos"));
     let hoje = new Date().toISOString().split("T")[0];
-    dados[index].fiod = hoje;
     dados[index].fiodPrazo = calcularPrazo(hoje);
     localStorage.setItem("processos", JSON.stringify(dados));
     carregar();
@@ -145,7 +196,20 @@ function encerrar(index){
     carregar();
 }
 
-</script>
+function excluir(index){
+    let dados = JSON.parse(localStorage.getItem("processos"));
+    if(confirm("Deseja excluir este processo?")){
+        dados.splice(index,1);
+        localStorage.setItem("processos", JSON.stringify(dados));
+        carregar();
+    }
+}
 
+function toggleFiltro(){
+    mostrarVencidos = !mostrarVencidos;
+    carregar();
+}
+
+</script>
 </body>
 </html>
