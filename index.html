@@ -5,145 +5,45 @@
 <title>Sistema Disciplinar - CMC</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link rel="icon" href="brasao.png">
-<link rel="apple-touch-icon" href="brasao.png">
-
 <style>
-:root {
-    --verde-eb:#1b3a2b;
-    --verde-sec:#2e5d3b;
-    --dourado:#c6a437;
-    --fundo:#f4f6f5;
-}
+body { font-family:Arial; margin:0; background:#f4f6f5; }
 
-body {
-    margin:0;
-    font-family:-apple-system,BlinkMacSystemFont,sans-serif;
-    background:var(--fundo);
-    color:#1b2e1b;
-}
+.hidden { display:none; }
 
-.banner {
-    background:url('banner.jpg') center/cover no-repeat;
-    height:230px;
-    position:relative;
-}
+.top { padding:15px; background:#1b3a2b; color:white; text-align:center; }
 
-.overlay {
-    position:absolute;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,0.55);
-}
-
-.banner-content {
-    position:absolute;
-    bottom:15px;
-    width:100%;
-    text-align:center;
-    color:white;
-}
-
-.banner-content img {
-    width:70px;
-    margin-bottom:8px;
-}
-
-.login-box {
-    padding:25px;
-    text-align:center;
-}
+.container { padding:15px; }
 
 input, textarea, button {
     width:100%;
     padding:10px;
-    margin:8px 0;
-    border-radius:8px;
+    margin:6px 0;
+    border-radius:6px;
     border:1px solid #ccc;
-    font-size:15px;
 }
 
-button {
-    background:var(--verde-eb);
-    color:white;
-    border:none;
-}
-
-button:hover { background:var(--verde-sec); }
-
-.hidden { display:none; }
-
-h2 {
-    text-align:center;
-    color:var(--verde-eb);
-    margin-top:20px;
-}
-
-.top-bar {
-    background:white;
-    margin:15px;
-    padding:15px;
-    border-radius:12px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.05);
-}
+button { background:#1b3a2b; color:white; border:none; }
 
 .card {
     background:white;
-    margin:15px;
-    padding:15px;
-    border-radius:12px;
-    box-shadow:0 3px 10px rgba(0,0,0,0.06);
+    padding:12px;
+    margin-top:10px;
+    border-radius:8px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.1);
 }
 
-.badge {
-    display:inline-block;
-    padding:5px 10px;
-    border-radius:6px;
-    font-size:12px;
-    font-weight:bold;
-}
+.vencido { border-left:5px solid red; }
+.pendente { border-left:5px solid orange; }
 
-.vencido { background:#b22222; color:white; }
-.pendente { background:var(--dourado); color:white; }
-
-footer {
-    text-align:center;
-    padding:20px;
-    font-size:13px;
-    color:#555;
-    margin-top:30px;
-    border-top:1px solid #ddd;
-}
+.small { font-size:13px; color:#555; }
 </style>
 </head>
 
 <body>
 
-<div id="login">
-<div class="banner">
-    <div class="overlay"></div>
-    <div class="banner-content">
-        <img src="brasao.png">
-        <h1>SISTEMA DISCIPLINAR</h1>
-        <div>Colégio Militar</div>
-    </div>
-</div>
+<div class="top">Sistema Disciplinar</div>
 
-<div class="login-box">
-    <input type="password" id="senha" placeholder="Senha">
-    <button onclick="entrar()">Acessar Sistema</button>
-</div>
-</div>
-
-<div id="app" class="hidden">
-
-<h2>Controle Disciplinar</h2>
-
-<div class="top-bar">
-<strong id="contador"></strong>
-<input type="text" id="pesquisa" placeholder="Pesquisar aluno..." onkeyup="carregar()">
-<button onclick="toggleHistorico()">Histórico</button>
-</div>
+<div class="container">
 
 <input type="text" id="nome" placeholder="Nome do Aluno">
 <input type="text" id="turma" placeholder="Turma">
@@ -151,36 +51,25 @@ footer {
 <textarea id="obs" placeholder="Observações"></textarea>
 <button onclick="adicionar()">Registrar FAFD</button>
 
-<div id="lista"></div>
+<hr>
 
-<footer>
-Colégio Militar • Sistema Interno Disciplinar • <span id="ano"></span>
-</footer>
+<button onclick="toggleHistorico()">Ver Histórico</button>
+<button onclick="limparHistorico()">Limpar Histórico</button>
+
+<div id="lista"></div>
 
 </div>
 
 <script>
 
-document.getElementById("ano").innerText=new Date().getFullYear();
-
-let SENHA="1234";
 let mostrarHistorico=false;
-
-function entrar(){
-    if(document.getElementById("senha").value===SENHA){
-        document.getElementById("login").classList.add("hidden");
-        document.getElementById("app").classList.remove("hidden");
-        carregar();
-    } else alert("Senha incorreta");
-}
 
 function calcularPrazo(data){
     let d=new Date(data);
     let dias=0;
     while(dias<3){
         d.setDate(d.getDate()+1);
-        let dia=d.getDay();
-        if(dia!==0 && dia!==6) dias++;
+        if(d.getDay()!=0 && d.getDay()!=6) dias++;
     }
     return d.toISOString().split("T")[0];
 }
@@ -191,17 +80,14 @@ function adicionar(){
     let data=document.getElementById("dataFafd").value;
     let obs=document.getElementById("obs").value;
 
-    if(!nome||!data){
-        alert("Preencha nome e data");
-        return;
-    }
+    if(!nome||!data){ alert("Preencha nome e data"); return; }
 
     let processo={
+        id: Date.now(), // ID ÚNICO
         nome,
         turma,
         obs,
         fafdPrazo:calcularPrazo(data),
-        fiodData:null,
         fiodPrazo:null,
         resultado:null,
         encerrado:false
@@ -211,11 +97,6 @@ function adicionar(){
     dados.push(processo);
     localStorage.setItem("processos",JSON.stringify(dados));
 
-    document.getElementById("nome").value="";
-    document.getElementById("turma").value="";
-    document.getElementById("dataFafd").value="";
-    document.getElementById("obs").value="";
-
     carregar();
 }
 
@@ -224,75 +105,59 @@ function carregar(){
     lista.innerHTML="";
     let dados=JSON.parse(localStorage.getItem("processos")||"[]");
     let hoje=new Date().toISOString().split("T")[0];
-    let pesquisa=document.getElementById("pesquisa").value.toLowerCase();
 
     dados.sort((a,b)=>{
-        let prazoA = a.fiodPrazo || a.fafdPrazo;
-        let prazoB = b.fiodPrazo || b.fafdPrazo;
-        return new Date(prazoA) - new Date(prazoB);
+        let prazoA=a.fiodPrazo||a.fafdPrazo;
+        let prazoB=b.fiodPrazo||b.fafdPrazo;
+        return new Date(prazoA)-new Date(prazoB);
     });
 
-    let ativos=0;
-    let vencidos=0;
+    dados.forEach(p=>{
 
-    dados.forEach((p,index)=>{
-
-        if(p.nome.toLowerCase().indexOf(pesquisa)===-1) return;
         if(!mostrarHistorico && p.encerrado) return;
         if(mostrarHistorico && !p.encerrado) return;
 
-        let prazoAtual = p.fiodPrazo || p.fafdPrazo;
+        let prazoAtual=p.fiodPrazo||p.fafdPrazo;
 
-        let badge="";
-        if(!p.encerrado){
-            ativos++;
-            if(hoje>prazoAtual){
-                vencidos++;
-                badge=`<span class="badge vencido">VENCIDO</span>`;
-            } else{
-                badge=`<span class="badge pendente">EM PRAZO</span>`;
-            }
-        }
+        let classe = hoje>prazoAtual ? "vencido":"pendente";
 
         lista.innerHTML+=`
-        <div class="card">
+        <div class="card ${classe}">
         <strong>${p.nome}</strong> - ${p.turma}<br>
         FAFD vence: ${p.fafdPrazo}<br>
         ${p.fiodPrazo ? "FIOD vence: "+p.fiodPrazo+"<br>Resultado: "+p.resultado+"<br>" : ""}
-        ${badge}<br>
-        ${p.obs||""}<br><br>
-        ${!p.fiodData && !p.encerrado ? `<button onclick="registrarFIOD(${index})">Registrar FIOD</button>` : ""}
-        ${p.fiodData && !p.encerrado ? `<button onclick="encerrar(${index})">Encerrar Processo</button>` : ""}
+        <div class="small">${p.obs||""}</div><br>
+
+        ${!p.fiodPrazo && !p.encerrado ?
+        `<button onclick="registrarFIOD(${p.id})">Registrar FIOD</button>` : ""}
+
+        ${p.fiodPrazo && !p.encerrado ?
+        `<button onclick="encerrar(${p.id})">Encerrar Processo</button>` : ""}
         </div>`;
     });
-
-    document.getElementById("contador").innerText=
-    mostrarHistorico?"📁 Histórico":
-    `Ativos: ${ativos} | Vencidos: ${vencidos}`;
 }
 
-function registrarFIOD(index){
+function registrarFIOD(id){
     let dados=JSON.parse(localStorage.getItem("processos"));
-    let escolha=prompt("Resultado:\n1 - Entregue no prazo\n2 - À revelia");
+    let processo=dados.find(p=>p.id===id);
 
-    if(escolha!=="1" && escolha!=="2"){
-        alert("Operação cancelada.");
-        return;
-    }
+    let escolha=prompt("1 - Entregue no prazo\n2 - À revelia");
+
+    if(escolha!=="1" && escolha!=="2"){ return; }
 
     let hoje=new Date().toISOString().split("T")[0];
 
-    dados[index].fiodData=hoje;
-    dados[index].fiodPrazo=calcularPrazo(hoje);
-    dados[index].resultado=(escolha==="1")?"Entregue no prazo":"À revelia";
+    processo.fiodPrazo=calcularPrazo(hoje);
+    processo.resultado=(escolha==="1")?"Entregue no prazo":"À revelia";
 
     localStorage.setItem("processos",JSON.stringify(dados));
     carregar();
 }
 
-function encerrar(index){
+function encerrar(id){
     let dados=JSON.parse(localStorage.getItem("processos"));
-    dados[index].encerrado=true;
+    let processo=dados.find(p=>p.id===id);
+    processo.encerrado=true;
     localStorage.setItem("processos",JSON.stringify(dados));
     carregar();
 }
@@ -301,6 +166,15 @@ function toggleHistorico(){
     mostrarHistorico=!mostrarHistorico;
     carregar();
 }
+
+function limparHistorico(){
+    let dados=JSON.parse(localStorage.getItem("processos")||"[]");
+    dados=dados.filter(p=>!p.encerrado);
+    localStorage.setItem("processos",JSON.stringify(dados));
+    carregar();
+}
+
+carregar();
 
 </script>
 
