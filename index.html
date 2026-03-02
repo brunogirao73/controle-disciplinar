@@ -52,11 +52,6 @@ body {
     margin-bottom:8px;
 }
 
-.banner-content h1 {
-    margin:0;
-    font-size:20px;
-}
-
 .login-box {
     padding:25px;
     text-align:center;
@@ -77,9 +72,7 @@ button {
     border:none;
 }
 
-button:hover {
-    background:var(--verde-sec);
-}
+button:hover { background:var(--verde-sec); }
 
 .manual-link {
     display:block;
@@ -131,7 +124,6 @@ h2 {
 .vencido { background:#b22222; color:white; }
 .pendente { background:var(--dourado); color:white; }
 
-/* TOAST */
 .toast {
     position:fixed;
     bottom:25px;
@@ -270,6 +262,13 @@ function carregar(){
     let dados=JSON.parse(localStorage.getItem("processos")||"[]");
     let hoje=new Date().toISOString().split("T")[0];
     let pesquisa=document.getElementById("pesquisa").value.toLowerCase();
+
+    // 🔥 ORDENAÇÃO AUTOMÁTICA POR VENCIMENTO
+    dados.sort((a,b)=>{
+        let dataA = new Date(a.fafdPrazo);
+        let dataB = new Date(b.fafdPrazo);
+        return dataA - dataB;
+    });
 
     let ativos=0;
     let vencidos=0;
