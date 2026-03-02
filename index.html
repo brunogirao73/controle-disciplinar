@@ -2,17 +2,41 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Sistema Disciplinar - CMC</title>
+<title>Sistema Disciplinar</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<link rel="icon" href="brasao.png">
+<link rel="apple-touch-icon" href="brasao.png">
+
 <style>
-body { font-family:Arial; margin:0; background:#f4f6f5; }
+body { margin:0; font-family:Arial; background:#f4f6f5; }
 
 .hidden { display:none; }
 
-.top { padding:15px; background:#1b3a2b; color:white; text-align:center; }
+.banner {
+    background:url('banner.jpg') center/cover no-repeat;
+    height:220px;
+    position:relative;
+}
 
-.container { padding:15px; }
+.overlay {
+    position:absolute;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.55);
+}
+
+.banner-text {
+    position:absolute;
+    bottom:20px;
+    width:100%;
+    text-align:center;
+    color:white;
+}
+
+.banner-text img { width:70px; margin-bottom:8px; }
+
+.login-box { padding:20px; text-align:center; }
 
 input, textarea, button {
     width:100%;
@@ -23,6 +47,16 @@ input, textarea, button {
 }
 
 button { background:#1b3a2b; color:white; border:none; }
+
+.topbar {
+    background:#1b3a2b;
+    color:white;
+    padding:15px;
+    text-align:center;
+    font-weight:bold;
+}
+
+.container { padding:15px; }
 
 .card {
     background:white;
@@ -35,15 +69,55 @@ button { background:#1b3a2b; color:white; border:none; }
 .vencido { border-left:5px solid red; }
 .pendente { border-left:5px solid orange; }
 
-.small { font-size:13px; color:#555; }
+.historico-bg {
+    background:#e9ecef;
+}
+
+.indicador {
+    text-align:center;
+    font-weight:bold;
+    margin:10px 0;
+}
 </style>
 </head>
 
 <body>
 
-<div class="top">Sistema Disciplinar</div>
+<!-- LOGIN -->
+<div id="login">
+
+<div class="banner">
+<div class="overlay"></div>
+<div class="banner-text">
+<img src="brasao.png">
+<h2>SISTEMA DISCIPLINAR</h2>
+Colégio Militar
+</div>
+</div>
+
+<div class="login-box">
+<input type="password" id="senha" placeholder="Senha">
+<button onclick="entrar()">Entrar</button>
+</div>
+
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+
+<div class="topbar" id="titulo">PROCESSOS ATIVOS</div>
 
 <div class="container">
+
+<div id="indicador" class="indicador"></div>
+
+<button onclick="mostrarAtivos()">Ver Ativos</button>
+<button onclick="mostrarHistorico()">Ver Histórico</button>
+<button onclick="limparHistorico()">Limpar Histórico</button>
+
+<hr>
+
+<h3>Novo Registro</h3>
 
 <input type="text" id="nome" placeholder="Nome do Aluno">
 <input type="text" id="turma" placeholder="Turma">
@@ -53,16 +127,23 @@ button { background:#1b3a2b; color:white; border:none; }
 
 <hr>
 
-<button onclick="toggleHistorico()">Ver Histórico</button>
-<button onclick="limparHistorico()">Limpar Histórico</button>
-
 <div id="lista"></div>
 
+</div>
 </div>
 
 <script>
 
-let mostrarHistorico=false;
+let modo="ativos";
+let SENHA="1234";
+
+function entrar(){
+    if(document.getElementById("senha").value===SENHA){
+        document.getElementById("login").classList.add("hidden");
+        document.getElementById("app").classList.remove("hidden");
+        carregar();
+    } else alert("Senha incorreta");
+}
 
 function calcularPrazo(data){
     let d=new Date(data);
@@ -83,7 +164,7 @@ function adicionar(){
     if(!nome||!data){ alert("Preencha nome e data"); return; }
 
     let processo={
-        id: Date.now(), // ID ÚNICO
+        id:Date.now(),
         nome,
         turma,
         obs,
@@ -101,6 +182,7 @@ function adicionar(){
 }
 
 function carregar(){
+
     let lista=document.getElementById("lista");
     lista.innerHTML="";
     let dados=JSON.parse(localStorage.getItem("processos")||"[]");
@@ -114,27 +196,33 @@ function carregar(){
 
     dados.forEach(p=>{
 
-        if(!mostrarHistorico && p.encerrado) return;
-        if(mostrarHistorico && !p.encerrado) return;
+        if(modo==="ativos" && p.encerrado) return;
+        if(modo==="historico" && !p.encerrado) return;
 
         let prazoAtual=p.fiodPrazo||p.fafdPrazo;
-
-        let classe = hoje>prazoAtual ? "vencido":"pendente";
+        let classe=hoje>prazoAtual?"vencido":"pendente";
 
         lista.innerHTML+=`
         <div class="card ${classe}">
         <strong>${p.nome}</strong> - ${p.turma}<br>
         FAFD vence: ${p.fafdPrazo}<br>
-        ${p.fiodPrazo ? "FIOD vence: "+p.fiodPrazo+"<br>Resultado: "+p.resultado+"<br>" : ""}
-        <div class="small">${p.obs||""}</div><br>
+        ${p.fiodPrazo?"FIOD vence: "+p.fiodPrazo+"<br>Resultado: "+p.resultado+"<br>":""}
+        ${p.obs||""}<br><br>
 
-        ${!p.fiodPrazo && !p.encerrado ?
-        `<button onclick="registrarFIOD(${p.id})">Registrar FIOD</button>` : ""}
+        ${!p.fiodPrazo && !p.encerrado?
+        `<button onclick="registrarFIOD(${p.id})">Registrar FIOD</button>`:""}
 
-        ${p.fiodPrazo && !p.encerrado ?
-        `<button onclick="encerrar(${p.id})">Encerrar Processo</button>` : ""}
+        ${p.fiodPrazo && !p.encerrado?
+        `<button onclick="encerrar(${p.id})">Encerrar Processo</button>`:""}
         </div>`;
     });
+
+    document.getElementById("titulo").innerText=
+        modo==="ativos"?"PROCESSOS ATIVOS":"HISTÓRICO ENCERRADOS";
+
+    document.getElementById("indicador").innerText=
+        modo==="ativos"?"Você está visualizando PROCESSOS ATIVOS":
+        "Você está no HISTÓRICO (somente leitura)";
 }
 
 function registrarFIOD(id){
@@ -142,8 +230,7 @@ function registrarFIOD(id){
     let processo=dados.find(p=>p.id===id);
 
     let escolha=prompt("1 - Entregue no prazo\n2 - À revelia");
-
-    if(escolha!=="1" && escolha!=="2"){ return; }
+    if(escolha!=="1"&&escolha!=="2") return;
 
     let hoje=new Date().toISOString().split("T")[0];
 
@@ -162,8 +249,13 @@ function encerrar(id){
     carregar();
 }
 
-function toggleHistorico(){
-    mostrarHistorico=!mostrarHistorico;
+function mostrarHistorico(){
+    modo="historico";
+    carregar();
+}
+
+function mostrarAtivos(){
+    modo="ativos";
     carregar();
 }
 
@@ -173,8 +265,6 @@ function limparHistorico(){
     localStorage.setItem("processos",JSON.stringify(dados));
     carregar();
 }
-
-carregar();
 
 </script>
 
