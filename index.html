@@ -168,8 +168,8 @@ let mostrarHistorico=false;
 
 function entrar(){
     if(document.getElementById("senha").value===SENHA){
-        login.classList.add("hidden");
-        app.classList.remove("hidden");
+        document.getElementById("login").classList.add("hidden");
+        document.getElementById("app").classList.remove("hidden");
         carregar();
     } else alert("Senha incorreta");
 }
@@ -197,10 +197,11 @@ function adicionar(){
     }
 
     let processo={
-        nome,
-        turma,
-        obs,
+        nome:nome,
+        turma:turma,
+        obs:obs,
         fafdPrazo:calcularPrazo(data),
+        fiodData:null,
         fiodPrazo:null,
         resultado:null,
         encerrado:false
@@ -209,6 +210,12 @@ function adicionar(){
     let dados=JSON.parse(localStorage.getItem("processos")||"[]");
     dados.push(processo);
     localStorage.setItem("processos",JSON.stringify(dados));
+
+    document.getElementById("nome").value="";
+    document.getElementById("turma").value="";
+    document.getElementById("dataFafd").value="";
+    document.getElementById("obs").value="";
+
     carregar();
 }
 
@@ -225,6 +232,7 @@ function carregar(){
     let vencidos=0;
 
     dados.forEach((p,index)=>{
+
         if(p.nome.toLowerCase().indexOf(pesquisa)===-1) return;
         if(!mostrarHistorico && p.encerrado) return;
         if(mostrarHistorico && !p.encerrado) return;
@@ -244,55 +252,37 @@ function carregar(){
         <div class="card">
         <strong>${p.nome}</strong> - ${p.turma}<br>
         FAFD vence: ${p.fafdPrazo}<br>
-        ${p.fiodPrazo ? "FIOD registrada<br>Resultado: "+p.resultado+"<br>" : ""}
+        ${p.fiodData ? "FIOD registrada em: "+p.fiodData+"<br>Resultado: "+p.resultado+"<br>" : ""}
         ${badge}<br>
         ${p.obs||""}<br><br>
-        ${!p.fiodPrazo && !p.encerrado ? `<button onclick="registrarFIOD(${index})">Registrar FIOD</button>`:""}
+        ${!p.encerrado && !p.fiodData ? `<button onclick="registrarFIOD(${index})">Registrar FIOD</button>`:""}
         </div>`;
     });
 
-    contador.innerText=
+    document.getElementById("contador").innerText=
     mostrarHistorico?"📁 Histórico":
     `Ativos: ${ativos} | Vencidos: ${vencidos}`;
 }
 
 function registrarFIOD(index){
 
-    let dados = JSON.parse(localStorage.getItem("processos"));
+    let dados=JSON.parse(localStorage.getItem("processos"));
+    let escolha=prompt("Resultado:\n1 - Entregue no prazo\n2 - À revelia");
 
-    let escolha = prompt(
-        "Informe o resultado da FIOD:\n\n" +
-        "1 - Entregue no prazo\n" +
-        "2 - À revelia"
-    );
-
-    if(escolha === null){
-        // usuário cancelou
+    if(escolha!=="1" && escolha!=="2"){
+        alert("Operação cancelada ou inválida.");
         return;
     }
 
-    if(escolha !== "1" && escolha !== "2"){
-        alert("Opção inválida. Digite apenas 1 ou 2.");
-        return;
-    }
+    let hoje=new Date().toISOString().split("T")[0];
 
-    let hoje = new Date().toISOString().split("T")[0];
+    dados[index].fiodData=hoje;
+    dados[index].fiodPrazo=calcularPrazo(hoje);
+    dados[index].resultado=(escolha==="1")?"Entregue no prazo":"À revelia";
+    dados[index].encerrado=true;
 
-    dados[index].fiodData = hoje;
-    dados[index].fiodPrazo = calcularPrazo(hoje);
-
-    if(escolha === "1"){
-        dados[index].resultado = "Entregue no prazo";
-    } else {
-        dados[index].resultado = "À revelia";
-    }
-
-    dados[index].encerrado = true;
-
-    localStorage.setItem("processos", JSON.stringify(dados));
-
+    localStorage.setItem("processos",JSON.stringify(dados));
     carregar();
-}
 }
 
 function toggleHistorico(){
