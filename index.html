@@ -6,24 +6,51 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin:15px; background:#f4f6f9; }
-
-h2 { text-align:center; margin-bottom:15px; }
-
-.top-bar {
-    background:white;
-    padding:12px;
-    border-radius:10px;
-    margin-bottom:15px;
-    box-shadow:0 2px 6px rgba(0,0,0,0.05);
+body {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    margin:0;
+    background:#f4f6f9;
 }
 
-input, textarea, button {
+.login-container {
+    text-align:center;
+}
+
+.banner {
+    position:relative;
+    height:220px;
+    background:url('https://upload.wikimedia.org/wikipedia/commons/7/75/Col%C3%A9gio_Militar_de_Curitiba.jpg') center/cover no-repeat;
+}
+
+.overlay {
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.45);
+}
+
+.banner-text {
+    position:absolute;
+    bottom:15px;
+    left:0;
+    right:0;
+    color:white;
+    font-size:20px;
+    font-weight:bold;
+}
+
+.login-box {
+    padding:20px;
+}
+
+input, button {
     width:100%;
     padding:10px;
-    margin:6px 0;
+    margin:8px 0;
     border-radius:8px;
-    border:1px solid #dcdcdc;
+    border:1px solid #ccc;
     font-size:15px;
 }
 
@@ -33,13 +60,34 @@ button {
     border:none;
 }
 
-.secondary { background:#6c757d; }
-.danger { background:#c0392b; }
+.link-manual {
+    margin-top:10px;
+    display:block;
+    font-size:14px;
+    color:#1f3a63;
+    text-decoration:none;
+}
+
+.link-manual:hover {
+    text-decoration:underline;
+}
+
+.hidden { display:none; }
+
+/* restante do sistema */
+
+.top-bar {
+    background:white;
+    padding:12px;
+    border-radius:10px;
+    margin:15px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.05);
+}
 
 .card {
     background:white;
     padding:14px;
-    margin-top:12px;
+    margin:12px 15px;
     border-radius:10px;
     box-shadow:0 3px 8px rgba(0,0,0,0.05);
 }
@@ -55,35 +103,41 @@ button {
 .vencido { background:#e74c3c; color:white; }
 .pendente { background:#f39c12; color:white; }
 
-.section-title {
-    font-weight:bold;
-    margin-top:20px;
-    color:#1f3a63;
-}
-
 .small { font-size:13px; color:#555; }
-
-.hidden { display:none; }
 
 </style>
 </head>
 
 <body>
 
-<div id="login">
-<h2>Controle Disciplinar</h2>
-<input type="password" id="senha" placeholder="Senha">
-<button onclick="entrar()">Entrar</button>
+<div id="login" class="login-container">
+
+<div class="banner">
+    <div class="overlay"></div>
+    <div class="banner-text">Controle Disciplinar CMC</div>
+</div>
+
+<div class="login-box">
+    <input type="password" id="senha" placeholder="Senha">
+    <button onclick="entrar()">Entrar</button>
+
+    <a class="link-manual"
+       href="https://www.cmc.eb.mil.br/images/2026/Manual%20Aluno%202026/Manual%20do%20Aluno%20SCMB.pdf"
+       target="_blank">
+       📘 Acessar Manual do Aluno
+    </a>
+</div>
+
 </div>
 
 <div id="app" class="hidden">
 
-<h2>Controle Disciplinar</h2>
+<h2 style="text-align:center;">Controle Disciplinar</h2>
 
 <div class="top-bar">
 <strong id="contador"></strong>
 <input type="text" id="pesquisa" placeholder="Pesquisar aluno..." onkeyup="carregar()">
-<button class="secondary" onclick="toggleHistorico()">Ver Histórico</button>
+<button onclick="toggleHistorico()">Ver Histórico</button>
 <button onclick="exportar()">Backup</button>
 </div>
 
@@ -122,7 +176,7 @@ function calcularPrazo(data){
 }
 
 function adicionar(){
-    let nome=nome.value;
+    let nome=document.getElementById("nome").value;
     let turma=document.getElementById("turma").value;
     let data=document.getElementById("dataFafd").value;
     let obs=document.getElementById("obs").value;
@@ -135,9 +189,7 @@ function adicionar(){
         obs,
         fafdData:data,
         fafdPrazo:calcularPrazo(data),
-        fiodData:null,
         fiodPrazo:null,
-        resultado:null,
         encerrado:false
     };
 
@@ -160,13 +212,11 @@ function carregar(){
     dados.forEach((p,index)=>{
 
         if(p.nome.toLowerCase().indexOf(pesquisa)===-1) return;
-
         if(!mostrarHistorico && p.encerrado) return;
         if(mostrarHistorico && !p.encerrado) return;
 
         let prazo=p.fiodPrazo || p.fafdPrazo;
         let badge="";
-        let classe="";
 
         if(!p.encerrado){
             ativos++;
@@ -182,11 +232,9 @@ function carregar(){
         <div class="card">
         <strong>${p.nome}</strong> - ${p.turma}<br>
         FAFD vence: ${p.fafdPrazo}<br>
-        ${p.fiodPrazo ? "FIOD vence: "+p.fiodPrazo+"<br>" : ""}
         ${badge}<br>
         <div class="small">${p.obs||""}</div><br>
         ${!p.fiodPrazo && !p.encerrado ? `<button onclick="registrarFIOD(${index})">Registrar FIOD</button>`:""}
-        ${!p.encerrado ? `<button class="danger" onclick="excluir(${index})">Excluir</button>`:""}
         </div>`;
     });
 
@@ -197,23 +245,10 @@ function carregar(){
 
 function registrarFIOD(index){
     if(!confirm("Registrar FIOD?")) return;
-
     let dados=JSON.parse(localStorage.getItem("processos"));
     let hoje=new Date().toISOString().split("T")[0];
-
-    dados[index].fiodData=hoje;
     dados[index].fiodPrazo=calcularPrazo(hoje);
-    dados[index].resultado=prompt("Resultado: Entregue no prazo ou À revelia?");
-    dados[index].encerrado=true; // encerra automaticamente
-
-    localStorage.setItem("processos",JSON.stringify(dados));
-    carregar();
-}
-
-function excluir(index){
-    if(!confirm("Excluir processo?")) return;
-    let dados=JSON.parse(localStorage.getItem("processos"));
-    dados.splice(index,1);
+    dados[index].encerrado=true;
     localStorage.setItem("processos",JSON.stringify(dados));
     carregar();
 }
