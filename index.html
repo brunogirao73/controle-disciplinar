@@ -257,21 +257,42 @@ function carregar(){
 }
 
 function registrarFIOD(index){
-    if(!confirm("Registrar FIOD?")) return;
 
-    let dados=JSON.parse(localStorage.getItem("processos"));
-    let hoje=new Date().toISOString().split("T")[0];
+    let dados = JSON.parse(localStorage.getItem("processos"));
 
-    let resultado=prompt("Resultado:\n1 - Entregue no prazo\n2 - À revelia");
+    let escolha = prompt(
+        "Informe o resultado da FIOD:\n\n" +
+        "1 - Entregue no prazo\n" +
+        "2 - À revelia"
+    );
 
-    if(resultado==="1") dados[index].resultado="Entregue no prazo";
-    else dados[index].resultado="À revelia";
+    if(escolha === null){
+        // usuário cancelou
+        return;
+    }
 
-    dados[index].fiodPrazo=calcularPrazo(hoje);
-    dados[index].encerrado=true;
+    if(escolha !== "1" && escolha !== "2"){
+        alert("Opção inválida. Digite apenas 1 ou 2.");
+        return;
+    }
 
-    localStorage.setItem("processos",JSON.stringify(dados));
+    let hoje = new Date().toISOString().split("T")[0];
+
+    dados[index].fiodData = hoje;
+    dados[index].fiodPrazo = calcularPrazo(hoje);
+
+    if(escolha === "1"){
+        dados[index].resultado = "Entregue no prazo";
+    } else {
+        dados[index].resultado = "À revelia";
+    }
+
+    dados[index].encerrado = true;
+
+    localStorage.setItem("processos", JSON.stringify(dados));
+
     carregar();
+}
 }
 
 function toggleHistorico(){
