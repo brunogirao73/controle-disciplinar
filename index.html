@@ -23,7 +23,6 @@ body {
     color:#1b2e1b;
 }
 
-/* LOGIN */
 .banner {
     background:url('banner.jpg') center/cover no-repeat;
     height:230px;
@@ -32,8 +31,6 @@ body {
 
 .overlay {
     position:absolute;
-    top:0;
-    left:0;
     width:100%;
     height:100%;
     background:rgba(0,0,0,0.55);
@@ -74,15 +71,6 @@ button {
 
 button:hover { background:var(--verde-sec); }
 
-.manual-link {
-    display:block;
-    margin-top:12px;
-    font-size:14px;
-    color:var(--verde-eb);
-    text-decoration:none;
-}
-
-/* SISTEMA */
 .hidden { display:none; }
 
 h2 {
@@ -105,12 +93,6 @@ h2 {
     padding:15px;
     border-radius:12px;
     box-shadow:0 3px 10px rgba(0,0,0,0.06);
-    animation:fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-    from { opacity:0; transform:translateY(8px); }
-    to { opacity:1; transform:translateY(0); }
 }
 
 .badge {
@@ -123,24 +105,6 @@ h2 {
 
 .vencido { background:#b22222; color:white; }
 .pendente { background:var(--dourado); color:white; }
-
-.toast {
-    position:fixed;
-    bottom:25px;
-    left:50%;
-    transform:translateX(-50%);
-    background:var(--verde-sec);
-    color:white;
-    padding:12px 20px;
-    border-radius:8px;
-    font-size:14px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.2);
-    opacity:0;
-    transition:opacity 0.3s ease;
-    z-index:1000;
-}
-
-.toast.show { opacity:1; }
 
 footer {
     text-align:center;
@@ -156,7 +120,6 @@ footer {
 <body>
 
 <div id="login">
-
 <div class="banner">
     <div class="overlay"></div>
     <div class="banner-content">
@@ -169,14 +132,7 @@ footer {
 <div class="login-box">
     <input type="password" id="senha" placeholder="Senha">
     <button onclick="entrar()">Acessar Sistema</button>
-
-    <a class="manual-link"
-       href="https://www.cmc.eb.mil.br/images/2026/Manual%20Aluno%202026/Manual%20do%20Aluno%20SCMB.pdf"
-       target="_blank">
-       📘 Manual do Aluno
-    </a>
 </div>
-
 </div>
 
 <div id="app" class="hidden">
@@ -187,7 +143,6 @@ footer {
 <strong id="contador"></strong>
 <input type="text" id="pesquisa" placeholder="Pesquisar aluno..." onkeyup="carregar()">
 <button onclick="toggleHistorico()">Histórico</button>
-<button onclick="exportar()">Backup</button>
 </div>
 
 <input type="text" id="nome" placeholder="Nome do Aluno">
@@ -208,7 +163,7 @@ Colégio Militar • Sistema Interno Disciplinar • <span id="ano"></span>
 
 document.getElementById("ano").innerText=new Date().getFullYear();
 
-let SENHA=localStorage.getItem("senhaApp")||"1234";
+let SENHA="1234";
 let mostrarHistorico=false;
 
 function entrar(){
@@ -241,19 +196,20 @@ function adicionar(){
         return;
     }
 
-    let processo={nome,turma,obs,fafdPrazo:calcularPrazo(data),encerrado:false};
+    let processo={
+        nome,
+        turma,
+        obs,
+        fafdPrazo:calcularPrazo(data),
+        fiodPrazo:null,
+        resultado:null,
+        encerrado:false
+    };
 
     let dados=JSON.parse(localStorage.getItem("processos")||"[]");
     dados.push(processo);
     localStorage.setItem("processos",JSON.stringify(dados));
-
-    document.getElementById("nome").value="";
-    document.getElementById("turma").value="";
-    document.getElementById("dataFafd").value="";
-    document.getElementById("obs").value="";
-
     carregar();
-    mostrarToast("Aluno registrado com sucesso");
 }
 
 function carregar(){
@@ -263,12 +219,7 @@ function carregar(){
     let hoje=new Date().toISOString().split("T")[0];
     let pesquisa=document.getElementById("pesquisa").value.toLowerCase();
 
-    // 🔥 ORDENAÇÃO AUTOMÁTICA POR VENCIMENTO
-    dados.sort((a,b)=>{
-        let dataA = new Date(a.fafdPrazo);
-        let dataB = new Date(b.fafdPrazo);
-        return dataA - dataB;
-    });
+    dados.sort((a,b)=>new Date(a.fafdPrazo)-new Date(b.fafdPrazo));
 
     let ativos=0;
     let vencidos=0;
@@ -293,9 +244,10 @@ function carregar(){
         <div class="card">
         <strong>${p.nome}</strong> - ${p.turma}<br>
         FAFD vence: ${p.fafdPrazo}<br>
+        ${p.fiodPrazo ? "FIOD registrada<br>Resultado: "+p.resultado+"<br>" : ""}
         ${badge}<br>
         ${p.obs||""}<br><br>
-        ${!p.encerrado?`<button onclick="encerrar(${index})">Encerrar</button>`:""}
+        ${!p.fiodPrazo && !p.encerrado ? `<button onclick="registrarFIOD(${index})">Registrar FIOD</button>`:""}
         </div>`;
     });
 
@@ -304,9 +256,20 @@ function carregar(){
     `Ativos: ${ativos} | Vencidos: ${vencidos}`;
 }
 
-function encerrar(index){
+function registrarFIOD(index){
+    if(!confirm("Registrar FIOD?")) return;
+
     let dados=JSON.parse(localStorage.getItem("processos"));
+    let hoje=new Date().toISOString().split("T")[0];
+
+    let resultado=prompt("Resultado:\n1 - Entregue no prazo\n2 - À revelia");
+
+    if(resultado==="1") dados[index].resultado="Entregue no prazo";
+    else dados[index].resultado="À revelia";
+
+    dados[index].fiodPrazo=calcularPrazo(hoje);
     dados[index].encerrado=true;
+
     localStorage.setItem("processos",JSON.stringify(dados));
     carregar();
 }
@@ -316,28 +279,6 @@ function toggleHistorico(){
     carregar();
 }
 
-function exportar(){
-    let dados=localStorage.getItem("processos")||"[]";
-    let blob=new Blob([dados],{type:"application/json"});
-    let url=URL.createObjectURL(blob);
-    let a=document.createElement("a");
-    a.href=url;
-    a.download="backup_controle_disciplinar.json";
-    a.click();
-}
-
-function mostrarToast(msg){
-    let toast=document.createElement("div");
-    toast.className="toast";
-    toast.innerText=msg;
-    document.body.appendChild(toast);
-
-    setTimeout(()=>toast.classList.add("show"),100);
-    setTimeout(()=>{
-        toast.classList.remove("show");
-        setTimeout(()=>document.body.removeChild(toast),300);
-    },2500);
-}
 </script>
 
 </body>
