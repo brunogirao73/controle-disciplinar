@@ -197,9 +197,9 @@ function adicionar(){
     }
 
     let processo={
-        nome:nome,
-        turma:turma,
-        obs:obs,
+        nome,
+        turma,
+        obs,
         fafdPrazo:calcularPrazo(data),
         fiodData:null,
         fiodPrazo:null,
@@ -226,7 +226,11 @@ function carregar(){
     let hoje=new Date().toISOString().split("T")[0];
     let pesquisa=document.getElementById("pesquisa").value.toLowerCase();
 
-    dados.sort((a,b)=>new Date(a.fafdPrazo)-new Date(b.fafdPrazo));
+    dados.sort((a,b)=>{
+        let prazoA = a.fiodPrazo || a.fafdPrazo;
+        let prazoB = b.fiodPrazo || b.fafdPrazo;
+        return new Date(prazoA) - new Date(prazoB);
+    });
 
     let ativos=0;
     let vencidos=0;
@@ -237,10 +241,12 @@ function carregar(){
         if(!mostrarHistorico && p.encerrado) return;
         if(mostrarHistorico && !p.encerrado) return;
 
+        let prazoAtual = p.fiodPrazo || p.fafdPrazo;
+
         let badge="";
         if(!p.encerrado){
             ativos++;
-            if(hoje>p.fafdPrazo){
+            if(hoje>prazoAtual){
                 vencidos++;
                 badge=`<span class="badge vencido">VENCIDO</span>`;
             } else{
@@ -252,10 +258,11 @@ function carregar(){
         <div class="card">
         <strong>${p.nome}</strong> - ${p.turma}<br>
         FAFD vence: ${p.fafdPrazo}<br>
-        ${p.fiodData ? "FIOD registrada em: "+p.fiodData+"<br>Resultado: "+p.resultado+"<br>" : ""}
+        ${p.fiodPrazo ? "FIOD vence: "+p.fiodPrazo+"<br>Resultado: "+p.resultado+"<br>" : ""}
         ${badge}<br>
         ${p.obs||""}<br><br>
-        ${!p.encerrado && !p.fiodData ? `<button onclick="registrarFIOD(${index})">Registrar FIOD</button>`:""}
+        ${!p.fiodData && !p.encerrado ? `<button onclick="registrarFIOD(${index})">Registrar FIOD</button>` : ""}
+        ${p.fiodData && !p.encerrado ? `<button onclick="encerrar(${index})">Encerrar Processo</button>` : ""}
         </div>`;
     });
 
@@ -265,12 +272,11 @@ function carregar(){
 }
 
 function registrarFIOD(index){
-
     let dados=JSON.parse(localStorage.getItem("processos"));
     let escolha=prompt("Resultado:\n1 - Entregue no prazo\n2 - À revelia");
 
     if(escolha!=="1" && escolha!=="2"){
-        alert("Operação cancelada ou inválida.");
+        alert("Operação cancelada.");
         return;
     }
 
@@ -279,8 +285,14 @@ function registrarFIOD(index){
     dados[index].fiodData=hoje;
     dados[index].fiodPrazo=calcularPrazo(hoje);
     dados[index].resultado=(escolha==="1")?"Entregue no prazo":"À revelia";
-    dados[index].encerrado=true;
 
+    localStorage.setItem("processos",JSON.stringify(dados));
+    carregar();
+}
+
+function encerrar(index){
+    let dados=JSON.parse(localStorage.getItem("processos"));
+    dados[index].encerrado=true;
     localStorage.setItem("processos",JSON.stringify(dados));
     carregar();
 }
