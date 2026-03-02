@@ -4,50 +4,70 @@
 <meta charset="UTF-8">
 <title>Controle Disciplinar</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-body { font-family: Arial; margin: 15px; background:#eef1f5; }
-h2 { text-align:center; }
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin:15px; background:#f4f6f9; }
 
-input, textarea, select, button {
-    width:100%;
-    padding:8px;
-    margin:5px 0;
-    border-radius:6px;
-    border:1px solid #ccc;
-}
-
-button { background:#2c3e50; color:white; border:none; }
+h2 { text-align:center; margin-bottom:15px; }
 
 .top-bar {
     background:white;
-    padding:10px;
-    border-radius:8px;
-    margin-bottom:10px;
+    padding:12px;
+    border-radius:10px;
+    margin-bottom:15px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.05);
 }
+
+input, textarea, button {
+    width:100%;
+    padding:10px;
+    margin:6px 0;
+    border-radius:8px;
+    border:1px solid #dcdcdc;
+    font-size:15px;
+}
+
+button {
+    background:#1f3a63;
+    color:white;
+    border:none;
+}
+
+.secondary { background:#6c757d; }
+.danger { background:#c0392b; }
 
 .card {
     background:white;
-    padding:12px;
-    margin-top:10px;
-    border-radius:8px;
-    box-shadow:0 2px 5px rgba(0,0,0,0.1);
+    padding:14px;
+    margin-top:12px;
+    border-radius:10px;
+    box-shadow:0 3px 8px rgba(0,0,0,0.05);
 }
 
-.vencido { border-left:6px solid #e74c3c; }
-.pendente { border-left:6px solid #f39c12; }
-.encerrado { border-left:6px solid #27ae60; }
+.badge {
+    display:inline-block;
+    padding:4px 8px;
+    border-radius:6px;
+    font-size:12px;
+    font-weight:bold;
+}
+
+.vencido { background:#e74c3c; color:white; }
+.pendente { background:#f39c12; color:white; }
 
 .section-title {
-    margin-top:20px;
     font-weight:bold;
+    margin-top:20px;
+    color:#1f3a63;
 }
 
 .small { font-size:13px; color:#555; }
 
-.danger { background:#c0392b; }
+.hidden { display:none; }
 
 </style>
 </head>
+
 <body>
 
 <div id="login">
@@ -56,17 +76,15 @@ button { background:#2c3e50; color:white; border:none; }
 <button onclick="entrar()">Entrar</button>
 </div>
 
-<div id="app" style="display:none;">
+<div id="app" class="hidden">
 
 <h2>Controle Disciplinar</h2>
 
 <div class="top-bar">
 <strong id="contador"></strong>
 <input type="text" id="pesquisa" placeholder="Pesquisar aluno..." onkeyup="carregar()">
-<button onclick="exportar()">Exportar Backup</button>
-<input type="file" id="importFile" onchange="importar(event)">
-<button onclick="alterarSenha()">Alterar Senha</button>
-<button onclick="relatorio()">Relatório Mensal</button>
+<button class="secondary" onclick="toggleHistorico()">Ver Histórico</button>
+<button onclick="exportar()">Backup</button>
 </div>
 
 <input type="text" id="nome" placeholder="Nome do Aluno">
@@ -81,27 +99,19 @@ button { background:#2c3e50; color:white; border:none; }
 
 <script>
 
-let SENHA_PADRAO = localStorage.getItem("senhaApp") || "1234";
+let SENHA = localStorage.getItem("senhaApp") || "1234";
+let mostrarHistorico=false;
 
 function entrar(){
-    if(document.getElementById("senha").value === SENHA_PADRAO){
-        document.getElementById("login").style.display="none";
-        document.getElementById("app").style.display="block";
+    if(document.getElementById("senha").value===SENHA){
+        document.getElementById("login").classList.add("hidden");
+        document.getElementById("app").classList.remove("hidden");
         carregar();
     } else alert("Senha incorreta");
 }
 
-function alterarSenha(){
-    let nova = prompt("Digite nova senha:");
-    if(nova){
-        localStorage.setItem("senhaApp", nova);
-        SENHA_PADRAO = nova;
-        alert("Senha alterada com sucesso.");
-    }
-}
-
 function calcularPrazo(data){
-    let d = new Date(data);
+    let d=new Date(data);
     let dias=0;
     while(dias<3){
         d.setDate(d.getDate()+1);
@@ -112,12 +122,12 @@ function calcularPrazo(data){
 }
 
 function adicionar(){
-    let nome=document.getElementById("nome").value;
+    let nome=nome.value;
     let turma=document.getElementById("turma").value;
     let data=document.getElementById("dataFafd").value;
     let obs=document.getElementById("obs").value;
 
-    if(!nome || !data) return alert("Preencha nome e data");
+    if(!nome||!data) return alert("Preencha nome e data");
 
     let processo={
         nome,
@@ -127,7 +137,7 @@ function adicionar(){
         fafdPrazo:calcularPrazo(data),
         fiodData:null,
         fiodPrazo:null,
-        fiodResultado:null,
+        resultado:null,
         encerrado:false
     };
 
@@ -144,87 +154,58 @@ function carregar(){
     let hoje=new Date().toISOString().split("T")[0];
     let pesquisa=document.getElementById("pesquisa").value.toLowerCase();
 
-    let agrupado={};
-
-    dados.forEach((p,index)=>{
-        if(p.nome.toLowerCase().indexOf(pesquisa)===-1) return;
-
-        if(!agrupado[p.turma]) agrupado[p.turma]=[];
-        agrupado[p.turma].push({p,index});
-    });
-
-    let abertos=0;
+    let ativos=0;
     let vencidos=0;
 
-    for(let turma in agrupado){
+    dados.forEach((p,index)=>{
 
-        lista.innerHTML+=`<div class="section-title">Turma ${turma}</div>`;
+        if(p.nome.toLowerCase().indexOf(pesquisa)===-1) return;
 
-        agrupado[turma].forEach(obj=>{
-            let p=obj.p;
-            let index=obj.index;
+        if(!mostrarHistorico && p.encerrado) return;
+        if(mostrarHistorico && !p.encerrado) return;
 
-            let prazoAtual=p.fiodPrazo || p.fafdPrazo;
-            let classe="";
-            let status="";
+        let prazo=p.fiodPrazo || p.fafdPrazo;
+        let badge="";
+        let classe="";
 
-            if(p.encerrado){
-                classe="encerrado";
-                status="ENCERRADO";
-            } else if(hoje>prazoAtual){
-                classe="vencido";
-                status="VENCIDO";
+        if(!p.encerrado){
+            ativos++;
+            if(hoje>prazo){
                 vencidos++;
-                abertos++;
+                badge=`<span class="badge vencido">VENCIDO</span>`;
             } else{
-                classe="pendente";
-                status="EM PRAZO";
-                abertos++;
+                badge=`<span class="badge pendente">EM PRAZO</span>`;
             }
+        }
 
-            lista.innerHTML+=`
-            <div class="card ${classe}">
-            <strong>${p.nome}</strong><br>
-            FAFD entregue: ${p.fafdData} | vence: ${p.fafdPrazo}<br>
-            ${p.fiodPrazo ? "FIOD vence: "+p.fiodPrazo+"<br>" : ""}
-            ${p.fiodResultado ? "Resultado FIOD: "+p.fiodResultado+"<br>" : ""}
-            <div class="small">${p.obs||""}</div>
-            <strong>${status}</strong><br><br>
-            ${!p.fiodPrazo ? `<button onclick="registrarFIOD(${index})">Registrar FIOD</button>` : ""}
-            <button onclick="encerrar(${index})">Encerrar</button>
-            <button onclick="excluir(${index})" class="danger">Excluir</button>
-            </div>`;
-        });
-    }
+        lista.innerHTML+=`
+        <div class="card">
+        <strong>${p.nome}</strong> - ${p.turma}<br>
+        FAFD vence: ${p.fafdPrazo}<br>
+        ${p.fiodPrazo ? "FIOD vence: "+p.fiodPrazo+"<br>" : ""}
+        ${badge}<br>
+        <div class="small">${p.obs||""}</div><br>
+        ${!p.fiodPrazo && !p.encerrado ? `<button onclick="registrarFIOD(${index})">Registrar FIOD</button>`:""}
+        ${!p.encerrado ? `<button class="danger" onclick="excluir(${index})">Excluir</button>`:""}
+        </div>`;
+    });
 
     document.getElementById("contador").innerText=
-        `Abertos: ${abertos} | Vencidos: ${vencidos}`;
+    mostrarHistorico ? "📁 Histórico" :
+    `🔄 Ativos: ${ativos} | 🔴 Vencidos: ${vencidos}`;
 }
 
 function registrarFIOD(index){
+    if(!confirm("Registrar FIOD?")) return;
+
     let dados=JSON.parse(localStorage.getItem("processos"));
     let hoje=new Date().toISOString().split("T")[0];
 
-    if(dados[index].fiodPrazo){
-        alert("FIOD já registrada.");
-        return;
-    }
-
-    if(!confirm("Registrar FIOD?")) return;
-
     dados[index].fiodData=hoje;
     dados[index].fiodPrazo=calcularPrazo(hoje);
+    dados[index].resultado=prompt("Resultado: Entregue no prazo ou À revelia?");
+    dados[index].encerrado=true; // encerra automaticamente
 
-    let resultado=prompt("Resultado: Digite 'Entregue no prazo' ou 'À revelia'");
-    dados[index].fiodResultado=resultado||"";
-
-    localStorage.setItem("processos",JSON.stringify(dados));
-    carregar();
-}
-
-function encerrar(index){
-    let dados=JSON.parse(localStorage.getItem("processos"));
-    dados[index].encerrado=true;
     localStorage.setItem("processos",JSON.stringify(dados));
     carregar();
 }
@@ -234,6 +215,11 @@ function excluir(index){
     let dados=JSON.parse(localStorage.getItem("processos"));
     dados.splice(index,1);
     localStorage.setItem("processos",JSON.stringify(dados));
+    carregar();
+}
+
+function toggleHistorico(){
+    mostrarHistorico=!mostrarHistorico;
     carregar();
 }
 
@@ -247,33 +233,7 @@ function exportar(){
     a.click();
 }
 
-function importar(event){
-    let file=event.target.files[0];
-    let reader=new FileReader();
-    reader.onload=function(e){
-        localStorage.setItem("processos",e.target.result);
-        carregar();
-        alert("Backup restaurado.");
-    };
-    reader.readAsText(file);
-}
-
-function relatorio(){
-    let dados=JSON.parse(localStorage.getItem("processos")||"[]");
-    let mesAtual=new Date().getMonth();
-    let anoAtual=new Date().getFullYear();
-
-    let total=0;
-
-    dados.forEach(p=>{
-        let data=new Date(p.fafdData);
-        if(data.getMonth()===mesAtual && data.getFullYear()===anoAtual)
-            total++;
-    });
-
-    alert("Processos no mês atual: "+total);
-}
-
 </script>
+
 </body>
 </html>
