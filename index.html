@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Sistema Disciplinar 2.0</title>
+<title>Sistema Disciplinar 2.1</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -62,7 +62,7 @@ button { background:#1b3a2b; color:white; border:none; }
 
 .box {
     flex:1;
-    min-width:140px;
+    min-width:120px;
     background:white;
     padding:10px;
     border-radius:8px;
@@ -80,13 +80,9 @@ button { background:#1b3a2b; color:white; border:none; }
     box-shadow:0 2px 5px rgba(0,0,0,0.1);
 }
 
-.status { font-weight:bold; margin:5px 0; }
-
-.vencido { color:red; }
-.prazo { color:orange; }
-.entregue { color:blue; }
-.fiod { color:purple; }
-.encerrado { color:gray; }
+.vencido { border-left:6px solid red; }
+.amanha { border-left:6px solid orange; }
+.prazo { border-left:6px solid gold; }
 </style>
 </head>
 
@@ -118,6 +114,7 @@ Colégio Militar
 
 <h3>Novo Registro FAFD</h3>
 
+<input type="text" id="nr" placeholder="Nr do Aluno">
 <input type="text" id="nome" placeholder="Nome do Aluno">
 <input type="text" id="turma" placeholder="Turma">
 <input type="date" id="dataFafd">
@@ -157,19 +154,20 @@ return d.toISOString().split("T")[0];
 }
 
 function adicionar(){
+let nr=document.getElementById("nr").value;
 let nome=document.getElementById("nome").value;
 let turma=document.getElementById("turma").value;
 let data=document.getElementById("dataFafd").value;
 let obs=document.getElementById("obs").value;
 
-if(!nome||!data){ alert("Preencha nome e data"); return; }
+if(!nr||!nome||!data){ alert("Preencha Nr, Nome e Data"); return; }
 
 let processo={
 id:Date.now(),
+nr,
 nome,
 turma,
 obs,
-fafData:data,
 fafPrazo:calcularPrazo(data),
 fase:"fafd",
 fiodPrazo:null
@@ -189,43 +187,40 @@ lista.innerHTML="";
 dash.innerHTML="";
 
 let dados=JSON.parse(localStorage.getItem("processos")||"[]");
-let hoje=new Date().toISOString().split("T")[0];
+let hoje=new Date();
+let amanha=new Date();
+amanha.setDate(hoje.getDate()+1);
 
-let contadores={
-vencido:0,
-prazo:0,
-aguardando:0,
-fiod:0,
-encerrado:0
-};
+let hojeStr=hoje.toISOString().split("T")[0];
+let amanhaStr=amanha.toISOString().split("T")[0];
+
+let cont={vencido:0,prazo:0,amanha:0,aguardando:0,fiod:0,encerrado:0};
 
 dados.forEach(p=>{
 
 if(p.fase==="fafd"){
-if(hoje>p.fafPrazo) contadores.vencido++;
-else contadores.prazo++;
+if(hojeStr>p.fafPrazo) cont.vencido++;
+else if(p.fafPrazo===amanhaStr) cont.amanha++;
+else cont.prazo++;
 }
 
-if(p.fase==="entregue"||p.fase==="revelia") contadores.aguardando++;
-if(p.fase==="fiod") contadores.fiod++;
-if(p.fase==="encerrado") contadores.encerrado++;
+if(p.fase==="entregue"||p.fase==="revelia") cont.aguardando++;
+if(p.fase==="fiod") cont.fiod++;
+if(p.fase==="encerrado") cont.encerrado++;
 
 if(modo==="ativos" && p.fase==="encerrado") return;
 if(modo==="historico" && p.fase!=="encerrado") return;
 
-let status="";
+let classe="prazo";
 if(p.fase==="fafd"){
-status=hoje>p.fafPrazo?"FAFD VENCIDO":"FAFD EM PRAZO";
+if(hojeStr>p.fafPrazo) classe="vencido";
+else if(p.fafPrazo===amanhaStr) classe="amanha";
 }
-if(p.fase==="entregue") status="AGUARDANDO FIOD (Entregue)";
-if(p.fase==="revelia") status="AGUARDANDO FIOD (Revelia)";
-if(p.fase==="fiod") status="FIOD EM PRAZO";
-if(p.fase==="encerrado") status="ENCERRADO";
 
 lista.innerHTML+=`
-<div class="card">
-<strong>${p.nome}</strong> - ${p.turma}<br>
-${status}<br>
+<div class="card ${classe}">
+<strong>Nr ${p.nr}</strong><br>
+${p.nome} - ${p.turma}<br>
 FAFD vence: ${p.fafPrazo}<br>
 ${p.fiodPrazo?"FIOD vence: "+p.fiodPrazo+"<br>":""}
 <br>
@@ -248,26 +243,25 @@ ${p.fase==="fiod"?`
 });
 
 dash.innerHTML=`
-<div class="box">🔴 Vencidos<br>${contadores.vencido}</div>
-<div class="box">🟡 Em Prazo<br>${contadores.prazo}</div>
-<div class="box">🔵 Aguardando FIOD<br>${contadores.aguardando}</div>
-<div class="box">🟣 FIOD<br>${contadores.fiod}</div>
-<div class="box">⚫ Encerrados<br>${contadores.encerrado}</div>
+<div class="box">🔴 Vencidos<br>${cont.vencido}</div>
+<div class="box">🟠 Vence Amanhã<br>${cont.amanha}</div>
+<div class="box">🟡 Em Prazo<br>${cont.prazo}</div>
+<div class="box">🔵 Aguardando FIOD<br>${cont.aguardando}</div>
+<div class="box">🟣 FIOD<br>${cont.fiod}</div>
+<div class="box">⚫ Encerrados<br>${cont.encerrado}</div>
 `;
 }
 
 function entregue(id){
 let dados=JSON.parse(localStorage.getItem("processos"));
-let p=dados.find(x=>x.id===id);
-p.fase="entregue";
+dados.find(p=>p.id===id).fase="entregue";
 localStorage.setItem("processos",JSON.stringify(dados));
 carregar();
 }
 
 function revelia(id){
 let dados=JSON.parse(localStorage.getItem("processos"));
-let p=dados.find(x=>x.id===id);
-p.fase="revelia";
+dados.find(p=>p.id===id).fase="revelia";
 localStorage.setItem("processos",JSON.stringify(dados));
 carregar();
 }
@@ -275,8 +269,7 @@ carregar();
 function registrarFIOD(id){
 let dados=JSON.parse(localStorage.getItem("processos"));
 let p=dados.find(x=>x.id===id);
-let hoje=new Date().toISOString().split("T")[0];
-p.fiodPrazo=calcularPrazo(hoje);
+p.fiodPrazo=calcularPrazo(new Date().toISOString().split("T")[0]);
 p.fase="fiod";
 localStorage.setItem("processos",JSON.stringify(dados));
 carregar();
@@ -284,8 +277,7 @@ carregar();
 
 function encerrar(id){
 let dados=JSON.parse(localStorage.getItem("processos"));
-let p=dados.find(x=>x.id===id);
-p.fase="encerrado";
+dados.find(p=>p.id===id).fase="encerrado";
 localStorage.setItem("processos",JSON.stringify(dados));
 carregar();
 }
