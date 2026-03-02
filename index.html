@@ -5,50 +5,54 @@
 <title>Controle Disciplinar</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body { font-family: Arial; margin: 20px; background: #eef1f5; }
-h2 { text-align: center; }
+body { font-family: Arial; margin: 15px; background:#eef1f5; }
+h2 { text-align:center; }
 
-input, textarea, button {
-    padding: 8px;
-    margin: 5px 0;
-    width: 100%;
-    border-radius: 6px;
-    border: 1px solid #ccc;
+input, textarea, select, button {
+    width:100%;
+    padding:8px;
+    margin:5px 0;
+    border-radius:6px;
+    border:1px solid #ccc;
 }
 
-button { background: #2c3e50; color: white; border: none; }
+button { background:#2c3e50; color:white; border:none; }
 
 .top-bar {
-    background: white;
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 10px;
+    background:white;
+    padding:10px;
+    border-radius:8px;
+    margin-bottom:10px;
 }
 
 .card {
-    background: white;
-    padding: 12px;
-    margin-top: 10px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    background:white;
+    padding:12px;
+    margin-top:10px;
+    border-radius:8px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.1);
 }
 
-.vencido { border-left: 6px solid #e74c3c; }
-.pendente { border-left: 6px solid #f39c12; }
-.encerrado { border-left: 6px solid #27ae60; }
+.vencido { border-left:6px solid #e74c3c; }
+.pendente { border-left:6px solid #f39c12; }
+.encerrado { border-left:6px solid #27ae60; }
 
-.status { font-weight: bold; margin-top: 5px; }
+.section-title {
+    margin-top:20px;
+    font-weight:bold;
+}
 
-.small-btn { margin-top:5px; background:#34495e; }
+.small { font-size:13px; color:#555; }
+
 .danger { background:#c0392b; }
+
 </style>
 </head>
-
 <body>
 
 <div id="login">
 <h2>Controle Disciplinar</h2>
-<input type="password" id="senha" placeholder="Digite a senha">
+<input type="password" id="senha" placeholder="Senha">
 <button onclick="entrar()">Entrar</button>
 </div>
 
@@ -57,17 +61,18 @@ button { background: #2c3e50; color: white; border: none; }
 <h2>Controle Disciplinar</h2>
 
 <div class="top-bar">
-<strong id="contador"></strong><br>
+<strong id="contador"></strong>
 <input type="text" id="pesquisa" placeholder="Pesquisar aluno..." onkeyup="carregar()">
-<button class="small-btn" onclick="toggleFiltro()">Só Vencidos</button>
-<button class="small-btn" onclick="toggleHistorico()">Ver Histórico</button>
-<button class="small-btn" onclick="exportar()">Exportar Backup</button>
+<button onclick="exportar()">Exportar Backup</button>
+<input type="file" id="importFile" onchange="importar(event)">
+<button onclick="alterarSenha()">Alterar Senha</button>
+<button onclick="relatorio()">Relatório Mensal</button>
 </div>
 
 <input type="text" id="nome" placeholder="Nome do Aluno">
 <input type="text" id="turma" placeholder="Turma">
 <input type="date" id="dataFafd">
-<textarea id="obs" placeholder="Observações (opcional)"></textarea>
+<textarea id="obs" placeholder="Observações"></textarea>
 <button onclick="adicionar()">Registrar FAFD</button>
 
 <div id="lista"></div>
@@ -76,155 +81,197 @@ button { background: #2c3e50; color: white; border: none; }
 
 <script>
 
-const SENHA_PADRAO = "1234";
-let mostrarVencidos = false;
-let mostrarHistorico = false;
+let SENHA_PADRAO = localStorage.getItem("senhaApp") || "1234";
 
 function entrar(){
     if(document.getElementById("senha").value === SENHA_PADRAO){
-        document.getElementById("login").style.display = "none";
-        document.getElementById("app").style.display = "block";
+        document.getElementById("login").style.display="none";
+        document.getElementById("app").style.display="block";
         carregar();
-    } else {
-        alert("Senha incorreta");
+    } else alert("Senha incorreta");
+}
+
+function alterarSenha(){
+    let nova = prompt("Digite nova senha:");
+    if(nova){
+        localStorage.setItem("senhaApp", nova);
+        SENHA_PADRAO = nova;
+        alert("Senha alterada com sucesso.");
     }
 }
 
 function calcularPrazo(data){
     let d = new Date(data);
-    let dias = 0;
-    while(dias < 3){
-        d.setDate(d.getDate() + 1);
-        let dia = d.getDay();
-        if(dia !== 0 && dia !== 6){
-            dias++;
-        }
+    let dias=0;
+    while(dias<3){
+        d.setDate(d.getDate()+1);
+        let dia=d.getDay();
+        if(dia!==0 && dia!==6) dias++;
     }
     return d.toISOString().split("T")[0];
 }
 
 function adicionar(){
-    const nome = document.getElementById("nome").value;
-    const turma = document.getElementById("turma").value;
-    const data = document.getElementById("dataFafd").value;
-    const obs = document.getElementById("obs").value;
+    let nome=document.getElementById("nome").value;
+    let turma=document.getElementById("turma").value;
+    let data=document.getElementById("dataFafd").value;
+    let obs=document.getElementById("obs").value;
 
     if(!nome || !data) return alert("Preencha nome e data");
 
-    const processo = {
+    let processo={
         nome,
         turma,
         obs,
-        fafdPrazo: calcularPrazo(data),
-        fiodPrazo: null,
-        encerrado: false
+        fafdData:data,
+        fafdPrazo:calcularPrazo(data),
+        fiodData:null,
+        fiodPrazo:null,
+        fiodResultado:null,
+        encerrado:false
     };
 
-    let dados = JSON.parse(localStorage.getItem("processos") || "[]");
+    let dados=JSON.parse(localStorage.getItem("processos")||"[]");
     dados.push(processo);
-    localStorage.setItem("processos", JSON.stringify(dados));
+    localStorage.setItem("processos",JSON.stringify(dados));
     carregar();
 }
 
 function carregar(){
-    const lista = document.getElementById("lista");
-    lista.innerHTML = "";
-    let dados = JSON.parse(localStorage.getItem("processos") || "[]");
-    let hoje = new Date().toISOString().split("T")[0];
-    let pesquisa = document.getElementById("pesquisa").value.toLowerCase();
+    let lista=document.getElementById("lista");
+    lista.innerHTML="";
+    let dados=JSON.parse(localStorage.getItem("processos")||"[]");
+    let hoje=new Date().toISOString().split("T")[0];
+    let pesquisa=document.getElementById("pesquisa").value.toLowerCase();
 
-    let abertos = 0;
-    let vencidos = 0;
+    let agrupado={};
 
-    dados.forEach((p, index) => {
+    dados.forEach((p,index)=>{
+        if(p.nome.toLowerCase().indexOf(pesquisa)===-1) return;
 
-        if(p.nome.toLowerCase().indexOf(pesquisa) === -1) return;
-
-        if(mostrarHistorico && !p.encerrado) return;
-        if(!mostrarHistorico && p.encerrado) return;
-
-        let prazoAtual = p.fiodPrazo || p.fafdPrazo;
-        let classe = "";
-        let statusTexto = "";
-
-        if(p.encerrado){
-            classe = "encerrado";
-            statusTexto = "ENCERRADO";
-        } else if(hoje > prazoAtual){
-            classe = "vencido";
-            statusTexto = "VENCIDO";
-            vencidos++;
-            abertos++;
-        } else {
-            classe = "pendente";
-            statusTexto = "EM PRAZO";
-            abertos++;
-        }
-
-        if(mostrarVencidos && statusTexto !== "VENCIDO") return;
-
-        lista.innerHTML += `
-        <div class="card ${classe}">
-        <strong>${p.nome}</strong> - ${p.turma}<br>
-        FAFD vence: ${p.fafdPrazo}<br>
-        ${p.fiodPrazo ? "FIOD vence: " + p.fiodPrazo + "<br>" : ""}
-        ${p.obs ? "<em>Obs:</em> " + p.obs + "<br>" : ""}
-        <div class="status">${statusTexto}</div>
-        <br>
-        <button onclick="registrarFIOD(${index})">Registrar FIOD</button>
-        <button onclick="encerrar(${index})">Encerrar</button>
-        <button onclick="excluir(${index})" class="danger">Excluir</button>
-        </div>
-        `;
+        if(!agrupado[p.turma]) agrupado[p.turma]=[];
+        agrupado[p.turma].push({p,index});
     });
 
-    document.getElementById("contador").innerText =
+    let abertos=0;
+    let vencidos=0;
+
+    for(let turma in agrupado){
+
+        lista.innerHTML+=`<div class="section-title">Turma ${turma}</div>`;
+
+        agrupado[turma].forEach(obj=>{
+            let p=obj.p;
+            let index=obj.index;
+
+            let prazoAtual=p.fiodPrazo || p.fafdPrazo;
+            let classe="";
+            let status="";
+
+            if(p.encerrado){
+                classe="encerrado";
+                status="ENCERRADO";
+            } else if(hoje>prazoAtual){
+                classe="vencido";
+                status="VENCIDO";
+                vencidos++;
+                abertos++;
+            } else{
+                classe="pendente";
+                status="EM PRAZO";
+                abertos++;
+            }
+
+            lista.innerHTML+=`
+            <div class="card ${classe}">
+            <strong>${p.nome}</strong><br>
+            FAFD entregue: ${p.fafdData} | vence: ${p.fafdPrazo}<br>
+            ${p.fiodPrazo ? "FIOD vence: "+p.fiodPrazo+"<br>" : ""}
+            ${p.fiodResultado ? "Resultado FIOD: "+p.fiodResultado+"<br>" : ""}
+            <div class="small">${p.obs||""}</div>
+            <strong>${status}</strong><br><br>
+            ${!p.fiodPrazo ? `<button onclick="registrarFIOD(${index})">Registrar FIOD</button>` : ""}
+            <button onclick="encerrar(${index})">Encerrar</button>
+            <button onclick="excluir(${index})" class="danger">Excluir</button>
+            </div>`;
+        });
+    }
+
+    document.getElementById("contador").innerText=
         `Abertos: ${abertos} | Vencidos: ${vencidos}`;
 }
 
 function registrarFIOD(index){
-    if(!confirm("Confirmar registro da FIOD?")) return;
-    let dados = JSON.parse(localStorage.getItem("processos"));
-    let hoje = new Date().toISOString().split("T")[0];
-    dados[index].fiodPrazo = calcularPrazo(hoje);
-    localStorage.setItem("processos", JSON.stringify(dados));
+    let dados=JSON.parse(localStorage.getItem("processos"));
+    let hoje=new Date().toISOString().split("T")[0];
+
+    if(dados[index].fiodPrazo){
+        alert("FIOD já registrada.");
+        return;
+    }
+
+    if(!confirm("Registrar FIOD?")) return;
+
+    dados[index].fiodData=hoje;
+    dados[index].fiodPrazo=calcularPrazo(hoje);
+
+    let resultado=prompt("Resultado: Digite 'Entregue no prazo' ou 'À revelia'");
+    dados[index].fiodResultado=resultado||"";
+
+    localStorage.setItem("processos",JSON.stringify(dados));
     carregar();
 }
 
 function encerrar(index){
-    let dados = JSON.parse(localStorage.getItem("processos"));
-    dados[index].encerrado = true;
-    localStorage.setItem("processos", JSON.stringify(dados));
+    let dados=JSON.parse(localStorage.getItem("processos"));
+    dados[index].encerrado=true;
+    localStorage.setItem("processos",JSON.stringify(dados));
     carregar();
 }
 
 function excluir(index){
-    let dados = JSON.parse(localStorage.getItem("processos"));
-    if(confirm("Deseja excluir este processo?")){
-        dados.splice(index,1);
-        localStorage.setItem("processos", JSON.stringify(dados));
-        carregar();
-    }
-}
-
-function toggleFiltro(){
-    mostrarVencidos = !mostrarVencidos;
-    carregar();
-}
-
-function toggleHistorico(){
-    mostrarHistorico = !mostrarHistorico;
+    if(!confirm("Excluir processo?")) return;
+    let dados=JSON.parse(localStorage.getItem("processos"));
+    dados.splice(index,1);
+    localStorage.setItem("processos",JSON.stringify(dados));
     carregar();
 }
 
 function exportar(){
-    let dados = localStorage.getItem("processos") || "[]";
-    let blob = new Blob([dados], {type: "application/json"});
-    let url = URL.createObjectURL(blob);
-    let a = document.createElement("a");
-    a.href = url;
-    a.download = "backup_controle_disciplinar.json";
+    let dados=localStorage.getItem("processos")||"[]";
+    let blob=new Blob([dados],{type:"application/json"});
+    let url=URL.createObjectURL(blob);
+    let a=document.createElement("a");
+    a.href=url;
+    a.download="backup_controle_disciplinar.json";
     a.click();
+}
+
+function importar(event){
+    let file=event.target.files[0];
+    let reader=new FileReader();
+    reader.onload=function(e){
+        localStorage.setItem("processos",e.target.result);
+        carregar();
+        alert("Backup restaurado.");
+    };
+    reader.readAsText(file);
+}
+
+function relatorio(){
+    let dados=JSON.parse(localStorage.getItem("processos")||"[]");
+    let mesAtual=new Date().getMonth();
+    let anoAtual=new Date().getFullYear();
+
+    let total=0;
+
+    dados.forEach(p=>{
+        let data=new Date(p.fafdData);
+        if(data.getMonth()===mesAtual && data.getFullYear()===anoAtual)
+            total++;
+    });
+
+    alert("Processos no mês atual: "+total);
 }
 
 </script>
