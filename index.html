@@ -6,13 +6,17 @@
 <title>Sistema Disciplinar</title>
 
 <link rel="icon" href="brasao.png">
-<link rel="apple-touch-icon" href="brasao.png">
+<link rel="apple-touch-icon" sizes="180x180" href="brasao.png">
 
 <style>
 :root{
 --verde:#2e3b2f;
+--verdeEscuro:#1c251d;
 --dourado:#c6a052;
 --vermelho:#8b0000;
+--laranja:#d17a00;
+--azul:#004d80;
+--roxo:#6a0dad;
 --cinza:#f4f4f4;
 }
 
@@ -29,7 +33,7 @@ display:flex;
 justify-content:center;
 align-items:center;
 height:100vh;
-background:var(--verde);
+background:var(--verdeEscuro);
 }
 
 .login-box{
@@ -50,25 +54,26 @@ gap:10px;
 margin-bottom:10px;
 }
 
-.titulo img{ width:40px; }
+.titulo img{ width:45px; }
 
 h2{ margin:0; color:var(--verde); }
 
-input{
+input, textarea{
 width:100%;
 padding:10px;
-margin:8px 0;
+margin:6px 0;
 border-radius:5px;
 border:1px solid #ccc;
 }
 
 button{
 width:100%;
-padding:10px;
-background:var(--verde);
-color:white;
+padding:8px;
+margin-top:6px;
 border:none;
 border-radius:5px;
+background:var(--verde);
+color:white;
 font-weight:bold;
 cursor:pointer;
 }
@@ -85,12 +90,9 @@ font-weight:bold;
 margin-top:5px;
 }
 
-/* SISTEMA */
+/* APP */
 
-#app{
-display:none;
-padding:15px;
-}
+#app{ display:none; padding:15px;}
 
 .topbar{
 background:var(--verde);
@@ -103,8 +105,8 @@ font-weight:bold;
 
 .dashboard{
 display:flex;
-gap:10px;
 flex-wrap:wrap;
+gap:8px;
 margin-top:10px;
 }
 
@@ -112,18 +114,29 @@ margin-top:10px;
 flex:1;
 min-width:120px;
 background:white;
-padding:10px;
+padding:8px;
 border-radius:6px;
 text-align:center;
+font-size:13px;
 box-shadow:0 2px 5px rgba(0,0,0,0.1);
 }
 
 .card{
 background:white;
 padding:10px;
-margin-top:10px;
+margin-top:8px;
 border-radius:6px;
 box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+
+.vencido{ border-left:6px solid var(--vermelho); }
+.amanha{ border-left:6px solid var(--laranja); }
+.prazo{ border-left:6px solid gold; }
+.aguardando{ border-left:6px solid var(--azul); }
+.fiod{ border-left:6px solid var(--roxo); }
+
+.filtro{
+margin-top:10px;
 }
 </style>
 </head>
@@ -149,12 +162,17 @@ Acesso restrito – uso interno
 </div>
 </div>
 
-<!-- SISTEMA -->
+<!-- APP -->
 <div id="app">
 
 <div class="topbar">Painel Disciplinar</div>
 
 <div class="dashboard" id="dashboard"></div>
+
+<div class="filtro">
+<button onclick="modo='ativos';carregar()">Ver Ativos</button>
+<button onclick="modo='historico';carregar()">Ver Histórico</button>
+</div>
 
 <h3>Novo Registro FAFD</h3>
 
@@ -163,7 +181,7 @@ Acesso restrito – uso interno
 <input id="turma" placeholder="Turma">
 <input type="date" id="data">
 
-<button onclick="adicionar()">Registrar</button>
+<button onclick="adicionar()">Registrar FAFD</button>
 
 <div id="lista"></div>
 
@@ -172,16 +190,14 @@ Acesso restrito – uso interno
 <script>
 
 const senhaCorreta="1234";
+let modo="ativos";
 
 function entrar(){
-const senhaDigitada=document.getElementById("senha").value;
-if(senhaDigitada===senhaCorreta){
+if(document.getElementById("senha").value===senhaCorreta){
 document.getElementById("login").style.display="none";
 document.getElementById("app").style.display="block";
 carregar();
-}else{
-alert("Senha incorreta");
-}
+}else alert("Senha incorreta");
 }
 
 function prazoUtil(data){
@@ -195,66 +211,121 @@ return d.toISOString().split("T")[0];
 }
 
 function adicionar(){
-let nr=document.getElementById("nr").value;
-let nome=document.getElementById("nome").value;
-let turma=document.getElementById("turma").value;
-let data=document.getElementById("data").value;
-
-if(!nr||!nome||!data){
-alert("Preencha Nr, Nome e Data");
-return;
-}
-
-let dados=JSON.parse(localStorage.getItem("processos")||"[]");
+let dados=JSON.parse(localStorage.getItem("proc")||"[]");
 
 let novo={
 id:Date.now(),
-nr:nr,
-nome:nome,
-turma:turma,
-fafPrazo:prazoUtil(data)
+nr:nr.value,
+nome:nome.value,
+turma:turma.value,
+fafPrazo:prazoUtil(data.value),
+fase:"fafd"
 };
 
 dados.push(novo);
-localStorage.setItem("processos",JSON.stringify(dados));
+localStorage.setItem("proc",JSON.stringify(dados));
 
-document.getElementById("nr").value="";
-document.getElementById("nome").value="";
-document.getElementById("turma").value="";
-document.getElementById("data").value="";
-
+nr.value=""; nome.value=""; turma.value=""; data.value="";
 carregar();
 }
 
 function carregar(){
-
-let dados=JSON.parse(localStorage.getItem("processos")||"[]");
+let dados=JSON.parse(localStorage.getItem("proc")||"[]");
 let hoje=new Date().toISOString().split("T")[0];
-
-let vencidos=0;
-let emPrazo=0;
+let amanha=new Date(); amanha.setDate(amanha.getDate()+1);
+let amanhaStr=amanha.toISOString().split("T")[0];
 
 let lista=document.getElementById("lista");
 let dashboard=document.getElementById("dashboard");
 
 lista.innerHTML="";
 
+let cont={v:0,a:0,p:0,ag:0,f:0,e:0};
+
+dados.sort((a,b)=>a.fafPrazo.localeCompare(b.fafPrazo));
+
 dados.forEach(p=>{
-if(hoje>p.fafPrazo) vencidos++;
-else emPrazo++;
+if(p.fase==="fafd"){
+if(hoje>p.fafPrazo) cont.v++;
+else if(p.fafPrazo===amanhaStr) cont.a++;
+else cont.p++;
+}
+if(p.fase==="aguardando") cont.ag++;
+if(p.fase==="fiod") cont.f++;
+if(p.fase==="encerrado") cont.e++;
+
+if(modo==="ativos" && p.fase==="encerrado") return;
+if(modo==="historico" && p.fase!=="encerrado") return;
+
+let classe="prazo";
+if(p.fase==="fafd"){
+if(hoje>p.fafPrazo) classe="vencido";
+else if(p.fafPrazo===amanhaStr) classe="amanha";
+}
 
 lista.innerHTML+=`
-<div class="card">
+<div class="card ${classe}">
 <strong>Nr ${p.nr}</strong><br>
 ${p.nome} - ${p.turma}<br>
-Vence: ${p.fafPrazo}
+FAFD vence: ${p.fafPrazo}<br>
+
+${p.fase==="fafd"?`
+<button onclick="entregue(${p.id})">Aluno Entregou</button>
+<button onclick="revelia(${p.id})">Julgar à Revelia</button>
+`:""}
+
+${p.fase==="aguardando"?`
+<button onclick="registrarFIOD(${p.id})">Registrar FIOD</button>
+`:""}
+
+${p.fase==="fiod"?`
+<button onclick="encerrar(${p.id})">Encerrar Processo</button>
+`:""}
+
 </div>`;
 });
 
 dashboard.innerHTML=`
-<div class="box">Vencidos<br>${vencidos}</div>
-<div class="box">Em Prazo<br>${emPrazo}</div>
+<div class="box">🔴 Vencidos<br>${cont.v}</div>
+<div class="box">🟠 Vence Amanhã<br>${cont.a}</div>
+<div class="box">🟡 Em Prazo<br>${cont.p}</div>
+<div class="box">🔵 Aguardando FIOD<br>${cont.ag}</div>
+<div class="box">🟣 FIOD<br>${cont.f}</div>
+<div class="box">⚫ Encerrados<br>${cont.e}</div>
 `;
+}
+
+function entregue(id){
+let dados=JSON.parse(localStorage.getItem("proc"));
+let p=dados.find(x=>x.id===id);
+p.fase="aguardando";
+localStorage.setItem("proc",JSON.stringify(dados));
+carregar();
+}
+
+function revelia(id){
+let dados=JSON.parse(localStorage.getItem("proc"));
+let p=dados.find(x=>x.id===id);
+p.fase="aguardando";
+localStorage.setItem("proc",JSON.stringify(dados));
+carregar();
+}
+
+function registrarFIOD(id){
+let dados=JSON.parse(localStorage.getItem("proc"));
+let p=dados.find(x=>x.id===id);
+p.fiodPrazo=prazoUtil(new Date().toISOString().split("T")[0]);
+p.fase="fiod";
+localStorage.setItem("proc",JSON.stringify(dados));
+carregar();
+}
+
+function encerrar(id){
+let dados=JSON.parse(localStorage.getItem("proc"));
+let p=dados.find(x=>x.id===id);
+p.fase="encerrado";
+localStorage.setItem("proc",JSON.stringify(dados));
+carregar();
 }
 
 </script>
