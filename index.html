@@ -339,8 +339,11 @@ carregar();
 function registrarFIOD(id){
 let dados=JSON.parse(localStorage.getItem("proc"));
 let p=dados.find(x=>x.id===id);
-p.fiodPrazo=prazoUtil(new Date().toISOString().split("T")[0]);
+
+let hoje=new Date().toISOString().split("T")[0];
+p.fiodPrazo=prazoUtil(hoje);
 p.fase="fiod";
+
 localStorage.setItem("proc",JSON.stringify(dados));
 carregar();
 }
