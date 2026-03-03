@@ -281,8 +281,15 @@ lista.innerHTML+=`
 <strong>Nr ${p.nr}</strong><br>
 ${p.nome} - ${p.turma}<br>
 
-${p.fase==="fafd"?`FAFD vence: ${p.fafPrazo}<br>`:""}
-${p.fase==="fiod"?`FIOD vence: ${p.fiodPrazo}<br>`:""}
+${p.fase==="fafd" ? `FAFD vence: ${p.fafPrazo}<br>` : ""}
+
+${p.fase==="aguardando" ? `
+Status: Aguardando geração da FIOD<br>
+` : ""}
+
+${p.fase==="fiod" ? `
+FIOD vence: ${p.fiodPrazo}<br>
+` : ""}
 
 <br>
 
