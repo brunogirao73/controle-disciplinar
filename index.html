@@ -1,316 +1,260 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Sistema Disciplinar 2.1</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" type="image/png" href="brasao.png">
-<link rel="apple-touch-icon" sizes="180x180" href="brasao.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Sistema de Controle Disciplinar</title>
+
 <style>
-body { margin:0; font-family:Arial; background:#f4f6f5; }
 
-.hidden { display:none; }
+/* ========================= */
+/* PALETA OFICIAL EB */
+/* ========================= */
 
-.banner {
-    background:url('banner.jpg') center/cover no-repeat;
-    height:220px;
-    position:relative;
+:root{
+--verde-eb:#2e3b2f;
+--verde-escuro:#1c251d;
+--dourado-eb:#c6a052;
+--vermelho-alerta:#8b0000;
+--cinza-claro:#f4f4f4;
 }
 
-.overlay {
-    position:absolute;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,0.6);
+body{
+margin:0;
+font-family:Arial, Helvetica, sans-serif;
+background:var(--verde-escuro);
 }
 
-.banner-text {
-    position:absolute;
-    bottom:20px;
-    width:100%;
-    text-align:center;
-    color:white;
+/* ========================= */
+/* LOGIN */
+/* ========================= */
+
+#login{
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+background:linear-gradient(rgba(28,37,29,0.9), rgba(28,37,29,0.9)),
+url('https://images.unsplash.com/photo-1529070538774-1843cb3265df?q=80&w=1974&auto=format&fit=crop') center/cover no-repeat;
+padding:20px;
 }
 
-.banner-text img { width:70px; margin-bottom:8px; }
-
-.login-box { padding:20px; text-align:center; }
-
-input, textarea, button {
-    width:100%;
-    padding:10px;
-    margin:6px 0;
-    border-radius:6px;
-    border:1px solid #ccc;
+.login-box{
+background:white;
+padding:40px 30px;
+width:100%;
+max-width:400px;
+border-radius:10px;
+box-shadow:0 0 30px rgba(0,0,0,0.6);
+text-align:center;
+animation:fadeIn 0.6s ease-in-out;
 }
 
-button { background:#1b3a2b; color:white; border:none; }
-
-.topbar {
-    background:#1b3a2b;
-    color:white;
-    padding:15px;
-    text-align:center;
-    font-weight:bold;
+@keyframes fadeIn{
+from{opacity:0; transform:translateY(15px);}
+to{opacity:1; transform:translateY(0);}
 }
 
-.dashboard {
-    display:flex;
-    flex-wrap:wrap;
-    gap:10px;
-    padding:10px;
+.titulo{
+display:flex;
+align-items:center;
+justify-content:center;
+gap:10px;
+margin-bottom:10px;
 }
 
-.box {
-    flex:1;
-    min-width:120px;
-    background:white;
-    padding:10px;
-    border-radius:8px;
-    text-align:center;
-    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+.titulo img{
+width:40px;
 }
 
-.container { padding:15px; }
-
-.card {
-    background:white;
-    padding:12px;
-    margin-top:10px;
-    border-radius:8px;
-    box-shadow:0 2px 5px rgba(0,0,0,0.1);
+h2{
+margin:0;
+font-size:18px;
+color:var(--verde-eb);
+letter-spacing:1px;
 }
 
-.vencido { border-left:6px solid red; }
-.amanha { border-left:6px solid orange; }
-.prazo { border-left:6px solid gold; }
+.subtitulo{
+font-size:13px;
+color:#555;
+margin-bottom:20px;
+}
+
+input{
+width:100%;
+padding:12px;
+border:1px solid #ccc;
+border-radius:5px;
+margin-bottom:15px;
+font-size:15px;
+}
+
+.botao{
+width:100%;
+padding:12px;
+background:var(--verde-eb);
+color:white;
+border:none;
+border-radius:5px;
+font-weight:bold;
+cursor:pointer;
+transition:0.3s;
+}
+
+.botao:hover{
+background:var(--dourado-eb);
+color:black;
+transform:scale(1.03);
+}
+
+.mensagem-acesso{
+margin-top:10px;
+font-size:12px;
+color:var(--vermelho-alerta);
+font-weight:bold;
+}
+
+.links{
+margin-top:20px;
+border-top:1px solid #ddd;
+padding-top:15px;
+}
+
+.links a{
+display:block;
+margin:6px 0;
+text-decoration:none;
+font-weight:bold;
+}
+
+.manual{
+color:var(--vermelho-alerta);
+}
+
+.portaria{
+color:var(--verde-eb);
+}
+
+footer{
+margin-top:20px;
+font-size:11px;
+color:#666;
+}
+
+/* ========================= */
+/* SISTEMA (após login) */
+/* ========================= */
+
+#sistema{
+display:none;
+padding:20px;
+color:white;
+text-align:center;
+}
+
+.dashboard{
+margin-top:20px;
+background:var(--verde-eb);
+padding:20px;
+border-radius:10px;
+}
+
+.card{
+background:white;
+color:black;
+padding:15px;
+border-radius:8px;
+margin:10px 0;
+}
+
+@media(max-width:500px){
+.login-box{
+padding:30px 20px;
+}
+h2{
+font-size:16px;
+}
+}
+
 </style>
 </head>
 
 <body>
 
+<!-- LOGIN -->
+
 <div id="login">
-<div class="banner">
-<div class="overlay"></div>
-<div class="banner-text">
-<img src="brasao.png">
-<h2>SISTEMA DISCIPLINAR</h2>
-Colégio Militar
-</div>
-</div>
-
 <div class="login-box">
-<input type="password" id="senha" placeholder="Senha">
-<button onclick="entrar()">Entrar</button>
-    <div style="margin-top:20px; text-align:center;">
 
-<a href="https://www.cmc.eb.mil.br/images/2026/Manual%20Aluno%202026/Manual%20do%20Aluno%20SCMB.pdf" 
-target="_blank"
-style="display:block; margin:8px 0; color:#b22222; font-weight:bold; text-decoration:none;">
-📘 Manual do Aluno – SCMB
+<div class="titulo">
+<img src="https://upload.wikimedia.org/wikipedia/commons/1/1c/Bras%C3%A3o_do_Ex%C3%A9rcito_Brasileiro.svg">
+<h2>CONTROLE DISCIPLINAR</h2>
+</div>
+
+<div class="subtitulo">
+Colégio Militar de Curitiba<br>
+Sistema Administrativo Interno
+</div>
+
+<input type="password" id="senha" placeholder="Digite a senha">
+
+<button class="botao" onclick="entrar()">ACESSAR SISTEMA</button>
+
+<div class="mensagem-acesso">
+Acesso restrito – uso interno
+</div>
+
+<div class="links">
+<a class="manual" target="_blank"
+href="https://www.cmc.eb.mil.br/images/2026/Manual%20Aluno%202026/Manual%20do%20Aluno%20SCMB.pdf">
+Manual do Aluno – SCMB
 </a>
 
-<a href="portaria_mnl_alu_scmb.pdf" 
-target="_blank"
-style="display:block; margin:8px 0; color:#006400; font-weight:bold; text-decoration:none;">
-📄 Portaria nº 2 – SRH5/SRH/DEPA (06 Dez 2024)
+<a class="portaria" target="_blank"
+href="portaria_mnl_alu_scmb.pdf">
+Portaria nº 2 – SRH5/SRH/DEPA
 </a>
+</div>
+
+<footer>
+© <span id="ano"></span> Exército Brasileiro<br>
+Diretoria de Educação Preparatória e Assistencial
+</footer>
 
 </div>
 </div>
+
+<!-- SISTEMA -->
+
+<div id="sistema">
+<h2>Bem-vindo ao Sistema</h2>
+
+<div class="dashboard">
+<div class="card">Total de Processos Ativos: 0</div>
+<div class="card">Vencem Hoje: 0</div>
+<div class="card">Vencem Amanhã: 0</div>
+<div class="card">Em Prazo: 0</div>
+<div class="card">Vencidos: 0</div>
 </div>
 
-<div id="app" class="hidden">
-
-<div class="topbar">Painel Disciplinar</div>
-
-<div class="dashboard" id="dashboard"></div>
-
-<div class="container">
-
-<h3>Novo Registro FAFD</h3>
-
-<input type="text" id="nr" placeholder="Nr do Aluno">
-<input type="text" id="nome" placeholder="Nome do Aluno">
-<input type="text" id="turma" placeholder="Turma">
-<input type="date" id="dataFafd">
-<textarea id="obs" placeholder="Observações"></textarea>
-<button onclick="adicionar()">Registrar FAFD</button>
-
-<hr>
-
-<button onclick="toggleHistorico()">Alternar Histórico</button>
-
-<div id="lista"></div>
-
-</div>
 </div>
 
 <script>
 
-let SENHA="1234";
-let modo="ativos";
+/* Ano automático */
+document.getElementById("ano").innerText = new Date().getFullYear();
 
+/* Senha padrão */
 function entrar(){
-if(document.getElementById("senha").value===SENHA){
-document.getElementById("login").classList.add("hidden");
-document.getElementById("app").classList.remove("hidden");
-carregar();
-}else alert("Senha incorreta");
+const senhaCorreta = "1234";
+const senhaDigitada = document.getElementById("senha").value;
+
+if(senhaDigitada === senhaCorreta){
+document.getElementById("login").style.display="none";
+document.getElementById("sistema").style.display="block";
+}else{
+alert("Senha incorreta.");
 }
-
-function calcularPrazo(data){
-let d=new Date(data);
-let dias=0;
-while(dias<3){
-d.setDate(d.getDate()+1);
-if(d.getDay()!=0 && d.getDay()!=6) dias++;
-}
-return d.toISOString().split("T")[0];
-}
-
-function adicionar(){
-let nr=document.getElementById("nr").value;
-let nome=document.getElementById("nome").value;
-let turma=document.getElementById("turma").value;
-let data=document.getElementById("dataFafd").value;
-let obs=document.getElementById("obs").value;
-
-if(!nr||!nome||!data){ alert("Preencha Nr, Nome e Data"); return; }
-
-let processo={
-id:Date.now(),
-nr,
-nome,
-turma,
-obs,
-fafPrazo:calcularPrazo(data),
-fase:"fafd",
-fiodPrazo:null
-};
-
-let dados=JSON.parse(localStorage.getItem("processos")||"[]");
-dados.push(processo);
-localStorage.setItem("processos",JSON.stringify(dados));
-carregar();
-}
-
-function carregar(){
-
-let lista=document.getElementById("lista");
-let dash=document.getElementById("dashboard");
-lista.innerHTML="";
-dash.innerHTML="";
-
-let dados=JSON.parse(localStorage.getItem("processos")||"[]");
-let hoje=new Date();
-let amanha=new Date();
-amanha.setDate(hoje.getDate()+1);
-
-let hojeStr=hoje.toISOString().split("T")[0];
-let amanhaStr=amanha.toISOString().split("T")[0];
-
-let cont={vencido:0,prazo:0,amanha:0,aguardando:0,fiod:0,encerrado:0};
-
-dados.forEach(p=>{
-
-if(p.fase==="fafd"){
-if(hojeStr>p.fafPrazo) cont.vencido++;
-else if(p.fafPrazo===amanhaStr) cont.amanha++;
-else cont.prazo++;
-}
-
-if(p.fase==="entregue"||p.fase==="revelia") cont.aguardando++;
-if(p.fase==="fiod") cont.fiod++;
-if(p.fase==="encerrado") cont.encerrado++;
-
-if(modo==="ativos" && p.fase==="encerrado") return;
-if(modo==="historico" && p.fase!=="encerrado") return;
-
-let classe="prazo";
-if(p.fase==="fafd"){
-if(hojeStr>p.fafPrazo) classe="vencido";
-else if(p.fafPrazo===amanhaStr) classe="amanha";
-}
-
-lista.innerHTML+=`
-<div class="card ${classe}">
-<strong>Nr ${p.nr}</strong><br>
-${p.nome} - ${p.turma}<br>
-FAFD vence: ${p.fafPrazo}<br>
-${p.fiodPrazo?"FIOD vence: "+p.fiodPrazo+"<br>":""}
-<br>
-
-${p.fase==="fafd"?`
-<button onclick="entregue(${p.id})">Aluno Entregou</button>
-<button onclick="revelia(${p.id})">Julgar à Revelia</button>
-<button onclick="excluir(${p.id})">Excluir</button>
-`:""}
-
-${(p.fase==="entregue"||p.fase==="revelia")?`
-<button onclick="registrarFIOD(${p.id})">Registrar FIOD</button>
-`:""}
-
-${p.fase==="fiod"?`
-<button onclick="encerrar(${p.id})">Encerrar Processo</button>
-`:""}
-
-</div>`;
-});
-
-dash.innerHTML=`
-<div class="box">🔴 Vencidos<br>${cont.vencido}</div>
-<div class="box">🟠 Vence Amanhã<br>${cont.amanha}</div>
-<div class="box">🟡 Em Prazo<br>${cont.prazo}</div>
-<div class="box">🔵 Aguardando FIOD<br>${cont.aguardando}</div>
-<div class="box">🟣 FIOD<br>${cont.fiod}</div>
-<div class="box">⚫ Encerrados<br>${cont.encerrado}</div>
-`;
-}
-
-function entregue(id){
-let dados=JSON.parse(localStorage.getItem("processos"));
-dados.find(p=>p.id===id).fase="entregue";
-localStorage.setItem("processos",JSON.stringify(dados));
-carregar();
-}
-
-function revelia(id){
-let dados=JSON.parse(localStorage.getItem("processos"));
-dados.find(p=>p.id===id).fase="revelia";
-localStorage.setItem("processos",JSON.stringify(dados));
-carregar();
-}
-
-function registrarFIOD(id){
-let dados=JSON.parse(localStorage.getItem("processos"));
-let p=dados.find(x=>x.id===id);
-p.fiodPrazo=calcularPrazo(new Date().toISOString().split("T")[0]);
-p.fase="fiod";
-localStorage.setItem("processos",JSON.stringify(dados));
-carregar();
-}
-
-function encerrar(id){
-let dados=JSON.parse(localStorage.getItem("processos"));
-dados.find(p=>p.id===id).fase="encerrado";
-localStorage.setItem("processos",JSON.stringify(dados));
-carregar();
-}
-
-function excluir(id){
-if(!confirm("Excluir registro?")) return;
-let dados=JSON.parse(localStorage.getItem("processos"));
-dados=dados.filter(p=>p.id!==id);
-localStorage.setItem("processos",JSON.stringify(dados));
-carregar();
-}
-
-function toggleHistorico(){
-modo=modo==="ativos"?"historico":"ativos";
-carregar();
 }
 
 </script>
