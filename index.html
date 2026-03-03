@@ -213,13 +213,19 @@ return d.toISOString().split("T")[0];
 function adicionar(){
 let dados=JSON.parse(localStorage.getItem("proc")||"[]");
 
+if(!nr.value||!nome.value||!data.value){
+alert("Preencha Nr, Nome e Data");
+return;
+}
+
 let novo={
 id:Date.now(),
 nr:nr.value,
 nome:nome.value,
 turma:turma.value,
 fafPrazo:prazoUtil(data.value),
-fase:"fafd"
+fase:"fafd",
+fiodPrazo:null
 };
 
 dados.push(novo);
@@ -242,9 +248,14 @@ lista.innerHTML="";
 
 let cont={v:0,a:0,p:0,ag:0,f:0,e:0};
 
-dados.sort((a,b)=>a.fafPrazo.localeCompare(b.fafPrazo));
+dados.sort((a,b)=>{
+let prazoA=a.fase==="fiod"?a.fiodPrazo:a.fafPrazo;
+let prazoB=b.fase==="fiod"?b.fiodPrazo:b.fafPrazo;
+return prazoA.localeCompare(prazoB);
+});
 
 dados.forEach(p=>{
+
 if(p.fase==="fafd"){
 if(hoje>p.fafPrazo) cont.v++;
 else if(p.fafPrazo===amanhaStr) cont.a++;
@@ -262,16 +273,23 @@ if(p.fase==="fafd"){
 if(hoje>p.fafPrazo) classe="vencido";
 else if(p.fafPrazo===amanhaStr) classe="amanha";
 }
+if(p.fase==="aguardando") classe="aguardando";
+if(p.fase==="fiod") classe="fiod";
 
 lista.innerHTML+=`
 <div class="card ${classe}">
 <strong>Nr ${p.nr}</strong><br>
 ${p.nome} - ${p.turma}<br>
-FAFD vence: ${p.fafPrazo}<br>
+
+${p.fase==="fafd"?`FAFD vence: ${p.fafPrazo}<br>`:""}
+${p.fase==="fiod"?`FIOD vence: ${p.fiodPrazo}<br>`:""}
+
+<br>
 
 ${p.fase==="fafd"?`
 <button onclick="entregue(${p.id})">Aluno Entregou</button>
 <button onclick="revelia(${p.id})">Julgar à Revelia</button>
+<button onclick="excluir(${p.id})">Excluir</button>
 `:""}
 
 ${p.fase==="aguardando"?`
@@ -324,6 +342,14 @@ function encerrar(id){
 let dados=JSON.parse(localStorage.getItem("proc"));
 let p=dados.find(x=>x.id===id);
 p.fase="encerrado";
+localStorage.setItem("proc",JSON.stringify(dados));
+carregar();
+}
+
+function excluir(id){
+if(!confirm("Excluir registro?")) return;
+let dados=JSON.parse(localStorage.getItem("proc"));
+dados=dados.filter(p=>p.id!==id);
 localStorage.setItem("proc",JSON.stringify(dados));
 carregar();
 }
