@@ -58,9 +58,9 @@ margin-bottom:10px;
 
 h2{ margin:0; color:var(--verde); }
 
-input, textarea{
+input{
 width:100%;
-padding:10px;
+padding:8px;
 margin:6px 0;
 border-radius:5px;
 border:1px solid #ccc;
@@ -131,13 +131,13 @@ box-shadow:0 2px 5px rgba(0,0,0,0.1);
 
 .vencido{ border-left:6px solid var(--vermelho); }
 .amanha{ border-left:6px solid var(--laranja); }
+.venceHoje{ border-left:6px solid #006400; background:#e8f5e9; }
 .prazo{ border-left:6px solid gold; }
 .aguardando{ border-left:6px solid var(--azul); }
 .fiod{ border-left:6px solid var(--roxo); }
 
-.filtro{
-margin-top:10px;
-}
+.filtro{ margin-top:10px; }
+
 </style>
 </head>
 
@@ -170,10 +170,9 @@ Acesso restrito – uso interno
 <div class="dashboard" id="dashboard"></div>
 
 <div class="filtro">
-  <input id="busca" placeholder="Buscar por Nr ou Nome"
-onkeyup="carregar()">
 <button onclick="modo='ativos';carregar()">Ver Ativos</button>
 <button onclick="modo='historico';carregar()">Ver Histórico</button>
+<input id="busca" placeholder="Buscar por Nr ou Nome" onkeyup="carregar()">
 </div>
 
 <h3>Novo Registro FAFD</h3>
@@ -213,12 +212,12 @@ return d.toISOString().split("T")[0];
 }
 
 function adicionar(){
-let dados=JSON.parse(localStorage.getItem("proc")||"[]");
-
 if(!nr.value||!nome.value||!data.value){
 alert("Preencha Nr, Nome e Data");
 return;
 }
+
+let dados=JSON.parse(localStorage.getItem("proc")||"[]");
 
 let novo={
 id:Date.now(),
@@ -243,12 +242,14 @@ let hoje=new Date().toISOString().split("T")[0];
 let amanha=new Date(); amanha.setDate(amanha.getDate()+1);
 let amanhaStr=amanha.toISOString().split("T")[0];
 
+let buscaTexto=document.getElementById("busca").value.toLowerCase();
+
 let lista=document.getElementById("lista");
 let dashboard=document.getElementById("dashboard");
 
 lista.innerHTML="";
 
-let cont={v:0,a:0,p:0,ag:0,f:0,e:0};
+let cont={v:0,h:0,a:0,p:0,ag:0,f:0,e:0};
 
 dados.sort((a,b)=>{
 let prazoA=a.fase==="fiod"?a.fiodPrazo:a.fafPrazo;
@@ -258,8 +259,14 @@ return prazoA.localeCompare(prazoB);
 
 dados.forEach(p=>{
 
+if(buscaTexto){
+let combinado=(p.nr+" "+p.nome).toLowerCase();
+if(!combinado.includes(buscaTexto)) return;
+}
+
 if(p.fase==="fafd"){
 if(hoje>p.fafPrazo) cont.v++;
+else if(p.fafPrazo===hoje) cont.h++;
 else if(p.fafPrazo===amanhaStr) cont.a++;
 else cont.p++;
 }
@@ -271,8 +278,10 @@ if(modo==="ativos" && p.fase==="encerrado") return;
 if(modo==="historico" && p.fase!=="encerrado") return;
 
 let classe="prazo";
+
 if(p.fase==="fafd"){
 if(hoje>p.fafPrazo) classe="vencido";
+else if(p.fafPrazo===hoje) classe="venceHoje";
 else if(p.fafPrazo===amanhaStr) classe="amanha";
 }
 if(p.fase==="aguardando") classe="aguardando";
@@ -284,14 +293,8 @@ lista.innerHTML+=`
 ${p.nome} - ${p.turma}<br>
 
 ${p.fase==="fafd" ? `FAFD vence: ${p.fafPrazo}<br>` : ""}
-
-${p.fase==="aguardando" ? `
-Status: Aguardando geração da FIOD<br>
-` : ""}
-
-${p.fase==="fiod" ? `
-FIOD vence: ${p.fiodPrazo}<br>
-` : ""}
+${p.fase==="aguardando" ? `Status: Aguardando FIOD<br>` : ""}
+${p.fase==="fiod" ? `FIOD vence: ${p.fiodPrazo}<br>` : ""}
 
 <br>
 
@@ -314,8 +317,9 @@ ${p.fase==="fiod"?`
 
 dashboard.innerHTML=`
 <div class="box">🔴 Vencidos<br>${cont.v}</div>
+<div class="box">🟡 Vence Hoje<br>${cont.h}</div>
 <div class="box">🟠 Vence Amanhã<br>${cont.a}</div>
-<div class="box">🟡 Em Prazo<br>${cont.p}</div>
+<div class="box">🟢 Em Prazo<br>${cont.p}</div>
 <div class="box">🔵 Aguardando FIOD<br>${cont.ag}</div>
 <div class="box">🟣 FIOD<br>${cont.f}</div>
 <div class="box">⚫ Encerrados<br>${cont.e}</div>
@@ -324,16 +328,14 @@ dashboard.innerHTML=`
 
 function entregue(id){
 let dados=JSON.parse(localStorage.getItem("proc"));
-let p=dados.find(x=>x.id===id);
-p.fase="aguardando";
+dados.find(x=>x.id===id).fase="aguardando";
 localStorage.setItem("proc",JSON.stringify(dados));
 carregar();
 }
 
 function revelia(id){
 let dados=JSON.parse(localStorage.getItem("proc"));
-let p=dados.find(x=>x.id===id);
-p.fase="aguardando";
+dados.find(x=>x.id===id).fase="aguardando";
 localStorage.setItem("proc",JSON.stringify(dados));
 carregar();
 }
@@ -341,19 +343,15 @@ carregar();
 function registrarFIOD(id){
 let dados=JSON.parse(localStorage.getItem("proc"));
 let p=dados.find(x=>x.id===id);
-
-let hoje=new Date().toISOString().split("T")[0];
-p.fiodPrazo=prazoUtil(hoje);
+p.fiodPrazo=prazoUtil(new Date().toISOString().split("T")[0]);
 p.fase="fiod";
-
 localStorage.setItem("proc",JSON.stringify(dados));
 carregar();
 }
 
 function encerrar(id){
 let dados=JSON.parse(localStorage.getItem("proc"));
-let p=dados.find(x=>x.id===id);
-p.fase="encerrado";
+dados.find(x=>x.id===id).fase="encerrado";
 localStorage.setItem("proc",JSON.stringify(dados));
 carregar();
 }
