@@ -41,7 +41,7 @@ border-radius:8px;
 text-align:center;
 }
 
-input, button{
+input,button{
 width:100%;
 padding:8px;
 margin:6px 0;
@@ -103,7 +103,6 @@ border-radius:6px;
 
 </style>
 </head>
-
 <body>
 
 <div id="login">
@@ -129,8 +128,8 @@ Acesso restrito – uso interno
 <div class="topbar">Painel Disciplinar</div>
 
 <div style="margin-top:10px;">
-<button onclick="exportarBackup()">📥 Exportar Backup</button>
-<button onclick="document.getElementById('importarArquivo').click()">📤 Importar Backup</button>
+<button onclick="exportarBackup()">Exportar Backup</button>
+<button onclick="document.getElementById('importarArquivo').click()">Importar Backup</button>
 <input type="file" id="importarArquivo" style="display:none" accept=".json" onchange="importarBackup(event)">
 </div>
 
@@ -164,65 +163,74 @@ Acesso restrito – uso interno
 
 const senhaCorreta="1234";
 let modo="ativos";
-let dadosGlobal=[];
 
 function entrar(){
+
 if(document.getElementById("senha").value===senhaCorreta){
-login.style.display="none";
-app.style.display="block";
+
+document.getElementById("login").style.display="none";
+document.getElementById("app").style.display="block";
+
 carregar();
+
 }else{
 alert("Senha incorreta");
 }
+
 }
 
 function prazoUtil(data){
+
 let d=new Date(data);
 let dias=0;
 
 while(dias<3){
+
 d.setDate(d.getDate()+1);
+
 if(d.getDay()!=0 && d.getDay()!=6) dias++;
+
 }
 
 return d.toISOString().split("T")[0];
+
 }
 
 function adicionar(){
 
-if(!nr.value||!nome.value||!data.value){
+let nr=document.getElementById("nr").value;
+let nome=document.getElementById("nome").value;
+let turma=document.getElementById("turma").value;
+let data=document.getElementById("data").value;
+
+if(!nr||!nome||!data){
+
 alert("Preencha Nr, Nome e Data");
+
 return;
+
 }
 
 let dados=JSON.parse(localStorage.getItem("proc")||"[]");
 
 dados.push({
 id:Date.now(),
-nr:nr.value,
-nome:nome.value,
-turma:turma.value,
-fafPrazo:prazoUtil(data.value),
+nr:nr,
+nome:nome,
+turma:turma,
+fafPrazo:prazoUtil(data),
 fase:"fafd",
 fiodPrazo:null
 });
 
 localStorage.setItem("proc",JSON.stringify(dados));
 
-nr.value="";
-nome.value="";
-turma.value="";
-data.value="";
+document.getElementById("nr").value="";
+document.getElementById("nome").value="";
+document.getElementById("turma").value="";
+document.getElementById("data").value="";
 
 carregar();
-}
-
-function carregar(){
-
-let dados=JSON.parse(localStorage.getItem("proc")||"[]");
-dadosGlobal=dados;
-
-mostrarLista(dados);
 
 }
 
@@ -230,16 +238,11 @@ function buscar(){
 
 let texto=document.getElementById("busca").value.toLowerCase();
 
-if(texto===""){
-mostrarLista(dadosGlobal);
-return;
-}
+let dados=JSON.parse(localStorage.getItem("proc")||"[]");
 
-let filtrados=dadosGlobal.filter(p=>{
-
+let filtrados=dados.filter(p=>{
 let combinado=(p.nr+" "+p.nome).toLowerCase();
 return combinado.includes(texto);
-
 });
 
 mostrarLista(filtrados);
@@ -247,8 +250,18 @@ mostrarLista(filtrados);
 }
 
 function limparBusca(){
+
 document.getElementById("busca").value="";
 carregar();
+
+}
+
+function carregar(){
+
+let dados=JSON.parse(localStorage.getItem("proc")||"[]");
+
+mostrarLista(dados);
+
 }
 
 function mostrarLista(dados){
@@ -273,7 +286,7 @@ if(p.fase==="fafd"){
 
 if(hoje>p.fafPrazo){classe="vencido";cont.v++;}
 else if(p.fafPrazo===hoje){classe="venceHoje";cont.h++;}
-else{cont.p++;}
+else{classe="prazo";cont.p++;}
 
 }
 
@@ -284,6 +297,7 @@ if(p.fase==="encerrado"){cont.e++;}
 lista.innerHTML+=`
 
 <div class="card ${classe}">
+
 <strong>Nr ${p.nr}</strong><br>
 ${p.nome} - ${p.turma}<br>
 
@@ -361,6 +375,7 @@ function excluir(id){
 if(!confirm("Excluir registro?")) return;
 
 let dados=JSON.parse(localStorage.getItem("proc"));
+
 dados=dados.filter(p=>p.id!==id);
 
 localStorage.setItem("proc",JSON.stringify(dados));
