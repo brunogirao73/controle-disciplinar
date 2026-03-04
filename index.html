@@ -6,14 +6,14 @@
 <title>Controle Disciplinar</title>
 
 <link rel="icon" href="brasao.png">
-<link rel="apple-touch-icon" href="brasao.png">
+<link rel="apple-touch-icon" sizes="180x180" href="brasao.png">
 
 <style>
 
 :root{
 --verde:#2e3b2f;
 --vermelho:#8b0000;
---laranja:#d17a00;
+--laranja:#ff8c00;
 --azul:#004d80;
 --roxo:#6a0dad;
 --cinza:#f4f4f4;
@@ -38,10 +38,10 @@ background:var(--verde);
 .login-box{
 background:white;
 padding:30px;
-width:95%;
 max-width:400px;
 border-radius:8px;
 text-align:center;
+width:95%;
 }
 
 input,button{
@@ -90,12 +90,12 @@ background:white;
 padding:10px;
 border-radius:6px;
 text-align:center;
-font-size:13px;
 font-weight:bold;
 }
 
 .vencido{border-left:8px solid red;}
 .venceHoje{border-left:8px solid orange;}
+.venceAmanha{border-left:8px solid var(--laranja);}
 .prazo{border-left:8px solid green;}
 .aguardando{border-left:8px solid blue;}
 .fiod{border-left:8px solid purple;}
@@ -112,19 +112,15 @@ border-radius:6px;
 
 <body>
 
-<!-- LOGIN -->
-
 <div id="login">
-
 <div class="login-box">
 
 <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
-<img src="brasao.png" style="width:45px;">
+<img src="brasao.png" width="45">
 <h2>Controle Disciplinar</h2>
 </div>
 
 <input type="password" id="senha" placeholder="Senha">
-
 <button onclick="entrar()">Entrar</button>
 
 <div style="color:#8b0000;font-weight:bold;">
@@ -132,10 +128,7 @@ Acesso restrito – uso interno
 </div>
 
 </div>
-
 </div>
-
-<!-- APP -->
 
 <div id="app">
 
@@ -144,6 +137,8 @@ Acesso restrito – uso interno
 <div style="margin-top:10px;display:flex;gap:5px;flex-wrap:wrap;">
 <button onclick="exportarBackup()">💾 Exportar Backup</button>
 <button onclick="document.getElementById('importarArquivo').click()">📂 Importar Backup</button>
+<button onclick="gerarRelatorio()">📄 Gerar Relatório</button>
+
 <input type="file" id="importarArquivo" style="display:none" accept=".json" onchange="importarBackup(event)">
 </div>
 
@@ -179,18 +174,13 @@ const senhaCorreta="1234";
 let modo="ativos";
 
 function entrar(){
-
-if(document.getElementById("senha").value===senhaCorreta){
-
+if(senha.value===senhaCorreta){
 login.style.display="none";
 app.style.display="block";
-
 carregar();
-
 }else{
 alert("Senha incorreta");
 }
-
 }
 
 function prazoUtil(data){
@@ -199,44 +189,26 @@ let d=new Date(data);
 let dias=0;
 
 while(dias<3){
-
 d.setDate(d.getDate()+1);
-
 if(d.getDay()!=0 && d.getDay()!=6) dias++;
-
 }
 
 return d.toISOString().split("T")[0];
-
 }
 
 function registrarFAFD(){
 
-let nr=document.getElementById("nr").value;
-let nome=document.getElementById("nome").value;
-let turma=document.getElementById("turma").value;
-let data=document.getElementById("data").value;
-
-if(!nr||!nome||!data){
-
-alert("Preencha os campos obrigatórios");
-
-return;
-
-}
-
 let dados=JSON.parse(localStorage.getItem("proc")||"[]");
 
 dados.push({
-
 id:Date.now(),
-nr:nr,
-nome:nome,
-turma:turma,
-fafPrazo:prazoUtil(data),
+nr:nr.value,
+nome:nome.value,
+turma:turma.value,
+fafPrazo:prazoUtil(data.value),
 fase:"fafd",
+historico:["FAFD registrada"],
 fiodPrazo:null
-
 });
 
 localStorage.setItem("proc",JSON.stringify(dados));
@@ -260,16 +232,12 @@ mostrarLista(dados);
 
 function buscar(){
 
-let texto=document.getElementById("busca").value.toLowerCase();
+let texto=busca.value.toLowerCase();
 
 let dados=JSON.parse(localStorage.getItem("proc")||"[]");
 
 let filtrados=dados.filter(p=>{
-
-let t=(p.nr+" "+p.nome).toLowerCase();
-
-return t.includes(texto);
-
+return (p.nr+" "+p.nome).toLowerCase().includes(texto);
 });
 
 mostrarLista(filtrados);
@@ -279,27 +247,29 @@ mostrarLista(filtrados);
 function limparBusca(){
 
 busca.value="";
-
 carregar();
 
 }
 
 function mostrarLista(dados){
 
-let hoje=new Date().toISOString().split("T")[0];
+let hoje=new Date();
+let amanha=new Date();
+amanha.setDate(amanha.getDate()+1);
+
+hoje=hoje.toISOString().split("T")[0];
+amanha=amanha.toISOString().split("T")[0];
 
 let lista=document.getElementById("lista");
-
 let dashboard=document.getElementById("dashboard");
 
 lista.innerHTML="";
 
-let v=0,h=0,p=0,a=0,f=0,e=0;
+let v=0,h=0,am=0,p=0,a=0,f=0,e=0;
 
 dados.forEach(pessoa=>{
 
 if(modo==="ativos" && pessoa.fase==="encerrado") return;
-
 if(modo==="historico" && pessoa.fase!=="encerrado") return;
 
 let classe="prazo";
@@ -310,7 +280,9 @@ if(hoje>pessoa.fafPrazo){classe="vencido";v++;}
 
 else if(hoje===pessoa.fafPrazo){classe="venceHoje";h++;}
 
-else{classe="prazo";p++;}
+else if(amanha===pessoa.fafPrazo){classe="venceAmanha";am++;}
+
+else{p++;}
 
 }
 
@@ -325,7 +297,6 @@ lista.innerHTML+=`
 <div class="card ${classe}">
 
 <strong>Nr ${pessoa.nr}</strong><br>
-
 ${pessoa.nome} - ${pessoa.turma}<br>
 
 ${pessoa.fase==="fafd"?`FAFD vence: ${pessoa.fafPrazo}<br>`:""}
@@ -334,28 +305,22 @@ ${pessoa.fase==="aguardando"?`Aguardando FIOD<br>`:""}
 
 ${pessoa.fase==="fiod"?`FIOD vence: ${pessoa.fiodPrazo}<br>`:""}
 
-<br>
+<button onclick="verHistorico(${pessoa.id})">Histórico</button>
+
+<br><br>
 
 ${pessoa.fase==="fafd"?`
-
 <button onclick="entregue(${pessoa.id})">Aluno entregou</button>
-
 <button onclick="revelia(${pessoa.id})">Revelia</button>
-
 <button onclick="excluir(${pessoa.id})">Excluir</button>
-
 `:""}
 
 ${pessoa.fase==="aguardando"?`
-
 <button onclick="registrarFIOD(${pessoa.id})">Registrar FIOD</button>
-
 `:""}
 
 ${pessoa.fase==="fiod"?`
-
 <button onclick="encerrar(${pessoa.id})">Encerrar</button>
-
 `:""}
 
 </div>
@@ -367,18 +332,24 @@ ${pessoa.fase==="fiod"?`
 dashboard.innerHTML=`
 
 <div class="box vencido">🔴 Vencidos<br>${v}</div>
-
-<div class="box venceHoje">🟡 Vence Hoje<br>${h}</div>
-
-<div class="box prazo">🟢 Em Prazo<br>${p}</div>
-
+<div class="box venceHoje">🟡 Hoje<br>${h}</div>
+<div class="box venceAmanha">🟠 Amanhã<br>${am}</div>
+<div class="box prazo">🟢 Em prazo<br>${p}</div>
 <div class="box aguardando">🔵 Aguardando<br>${a}</div>
-
 <div class="box fiod">🟣 FIOD<br>${f}</div>
-
 <div class="box">⚫ Encerrados<br>${e}</div>
 
 `;
+
+}
+
+function verHistorico(id){
+
+let dados=JSON.parse(localStorage.getItem("proc"));
+
+let p=dados.find(x=>x.id===id);
+
+alert(p.historico.join("\n"));
 
 }
 
@@ -386,7 +357,10 @@ function entregue(id){
 
 let dados=JSON.parse(localStorage.getItem("proc"));
 
-dados.find(x=>x.id===id).fase="aguardando";
+let p=dados.find(x=>x.id===id);
+
+p.fase="aguardando";
+p.historico.push("Aluno entregou FAFD");
 
 localStorage.setItem("proc",JSON.stringify(dados));
 
@@ -398,7 +372,10 @@ function revelia(id){
 
 let dados=JSON.parse(localStorage.getItem("proc"));
 
-dados.find(x=>x.id===id).fase="aguardando";
+let p=dados.find(x=>x.id===id);
+
+p.fase="aguardando";
+p.historico.push("Revelia na FAFD");
 
 localStorage.setItem("proc",JSON.stringify(dados));
 
@@ -412,9 +389,10 @@ let dados=JSON.parse(localStorage.getItem("proc"));
 
 let p=dados.find(x=>x.id===id);
 
+p.fase="fiod";
 p.fiodPrazo=prazoUtil(new Date().toISOString().split("T")[0]);
 
-p.fase="fiod";
+p.historico.push("FIOD registrada");
 
 localStorage.setItem("proc",JSON.stringify(dados));
 
@@ -426,7 +404,11 @@ function encerrar(id){
 
 let dados=JSON.parse(localStorage.getItem("proc"));
 
-dados.find(x=>x.id===id).fase="encerrado";
+let p=dados.find(x=>x.id===id);
+
+p.fase="encerrado";
+
+p.historico.push("Processo encerrado");
 
 localStorage.setItem("proc",JSON.stringify(dados));
 
@@ -445,6 +427,24 @@ dados=dados.filter(p=>p.id!==id);
 localStorage.setItem("proc",JSON.stringify(dados));
 
 carregar();
+
+}
+
+function gerarRelatorio(){
+
+let dados=JSON.parse(localStorage.getItem("proc")||"[]");
+
+let texto="RELATÓRIO DISCIPLINAR\n\n";
+
+dados.forEach(p=>{
+texto+=`Nr ${p.nr} - ${p.nome} (${p.turma}) - ${p.fase}\n`;
+});
+
+let janela=window.open("","","width=800,height=600");
+
+janela.document.write("<pre>"+texto+"</pre>");
+
+janela.print();
 
 }
 
