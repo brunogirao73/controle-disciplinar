@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema Disciplinar</title>
+<title>Controle Disciplinar</title>
 
 <link rel="icon" href="brasao.png">
-<link rel="apple-touch-icon" sizes="180x180" href="brasao.png">
 
 <style>
 
@@ -24,8 +23,6 @@ margin:0;
 font-family:Arial;
 background:var(--cinza);
 }
-
-/* LOGIN */
 
 #login{
 display:flex;
@@ -60,8 +57,6 @@ border:none;
 cursor:pointer;
 }
 
-/* APP */
-
 #app{
 display:none;
 padding:15px;
@@ -90,7 +85,6 @@ background:white;
 padding:8px;
 border-radius:6px;
 text-align:center;
-font-size:13px;
 }
 
 .card{
@@ -109,29 +103,26 @@ border-radius:6px;
 
 </style>
 </head>
-<body>
 
-<!-- LOGIN -->
+<body>
 
 <div id="login">
 <div class="login-box">
 
 <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
 <img src="brasao.png" style="width:45px;">
-<h2 style="margin:0;">Controle Disciplinar</h2>
+<h2>Controle Disciplinar</h2>
 </div>
 
-<input type="password" id="senha" placeholder="Digite a senha">
+<input type="password" id="senha" placeholder="Senha">
 <button onclick="entrar()">Entrar</button>
 
-<div style="color:#8b0000;font-weight:bold;margin-top:10px;">
+<div style="color:#8b0000;font-weight:bold;">
 Acesso restrito – uso interno
 </div>
 
 </div>
 </div>
-
-<!-- SISTEMA -->
 
 <div id="app">
 
@@ -152,7 +143,7 @@ Acesso restrito – uso interno
 
 <div style="display:flex;gap:5px;margin-top:10px;">
 <input id="busca" placeholder="Buscar por Nr ou Nome">
-<button onclick="carregar()">Buscar</button>
+<button onclick="buscar()">Buscar</button>
 <button onclick="limparBusca()" style="background:#8b0000;">Limpar</button>
 </div>
 
@@ -173,46 +164,35 @@ Acesso restrito – uso interno
 
 const senhaCorreta="1234";
 let modo="ativos";
+let dadosGlobal=[];
 
 function entrar(){
-
 if(document.getElementById("senha").value===senhaCorreta){
-
-document.getElementById("login").style.display="none";
-document.getElementById("app").style.display="block";
-
+login.style.display="none";
+app.style.display="block";
 carregar();
-
 }else{
 alert("Senha incorreta");
 }
-
 }
 
 function prazoUtil(data){
-
 let d=new Date(data);
 let dias=0;
 
 while(dias<3){
-
 d.setDate(d.getDate()+1);
-
 if(d.getDay()!=0 && d.getDay()!=6) dias++;
-
 }
 
 return d.toISOString().split("T")[0];
-
 }
 
 function adicionar(){
 
 if(!nr.value||!nome.value||!data.value){
-
 alert("Preencha Nr, Nome e Data");
 return;
-
 }
 
 let dados=JSON.parse(localStorage.getItem("proc")||"[]");
@@ -235,21 +215,45 @@ turma.value="";
 data.value="";
 
 carregar();
-
 }
 
 function carregar(){
 
 let dados=JSON.parse(localStorage.getItem("proc")||"[]");
+dadosGlobal=dados;
+
+mostrarLista(dados);
+
+}
+
+function buscar(){
+
+let texto=document.getElementById("busca").value.toLowerCase();
+
+if(texto===""){
+mostrarLista(dadosGlobal);
+return;
+}
+
+let filtrados=dadosGlobal.filter(p=>{
+
+let combinado=(p.nr+" "+p.nome).toLowerCase();
+return combinado.includes(texto);
+
+});
+
+mostrarLista(filtrados);
+
+}
+
+function limparBusca(){
+document.getElementById("busca").value="";
+carregar();
+}
+
+function mostrarLista(dados){
 
 let hoje=new Date().toISOString().split("T")[0];
-
-let amanha=new Date();
-amanha.setDate(amanha.getDate()+1);
-
-let amanhaStr=amanha.toISOString().split("T")[0];
-
-let buscaTexto=document.getElementById("busca").value.toLowerCase().trim();
 
 let lista=document.getElementById("lista");
 let dashboard=document.getElementById("dashboard");
@@ -258,94 +262,49 @@ lista.innerHTML="";
 
 let cont={v:0,h:0,a:0,p:0,ag:0,f:0,e:0};
 
-let resultados=[];
-
 dados.forEach(p=>{
-
-let texto=(p.nr+" "+p.nome).toLowerCase();
-
-if(buscaTexto){
-
-if(!texto.includes(buscaTexto)) return;
-
-}
-
-if(p.fase==="fafd"){
-
-if(hoje>p.fafPrazo) cont.v++;
-else if(p.fafPrazo===hoje) cont.h++;
-else if(p.fafPrazo===amanhaStr) cont.a++;
-else cont.p++;
-
-}
-
-if(p.fase==="aguardando") cont.ag++;
-if(p.fase==="fiod") cont.f++;
-if(p.fase==="encerrado") cont.e++;
 
 if(modo==="ativos" && p.fase==="encerrado") return;
 if(modo==="historico" && p.fase!=="encerrado") return;
-
-resultados.push(p);
-
-});
-
-if(resultados.length===0){
-
-lista.innerHTML=`
-<div style="background:white;padding:20px;border-radius:6px;margin-top:10px;text-align:center;">
-Nenhum registro encontrado.
-</div>
-`;
-
-}else{
-
-resultados.forEach(p=>{
 
 let classe="prazo";
 
 if(p.fase==="fafd"){
 
-if(hoje>p.fafPrazo) classe="vencido";
-else if(p.fafPrazo===hoje) classe="venceHoje";
-else if(p.fafPrazo===amanhaStr) classe="amanha";
+if(hoje>p.fafPrazo){classe="vencido";cont.v++;}
+else if(p.fafPrazo===hoje){classe="venceHoje";cont.h++;}
+else{cont.p++;}
 
 }
 
-if(p.fase==="aguardando") classe="aguardando";
-if(p.fase==="fiod") classe="fiod";
+if(p.fase==="aguardando"){classe="aguardando";cont.ag++;}
+if(p.fase==="fiod"){classe="fiod";cont.f++;}
+if(p.fase==="encerrado"){cont.e++;}
 
 lista.innerHTML+=`
 
 <div class="card ${classe}">
-
 <strong>Nr ${p.nr}</strong><br>
 ${p.nome} - ${p.turma}<br>
 
 ${p.fase==="fafd"?`FAFD vence: ${p.fafPrazo}<br>`:""}
-${p.fase==="aguardando"?`Status: Aguardando FIOD<br>`:""}
+${p.fase==="aguardando"?`Aguardando FIOD<br>`:""}
 ${p.fase==="fiod"?`FIOD vence: ${p.fiodPrazo}<br>`:""}
 
 <br>
 
 ${p.fase==="fafd"?`
-
 <button onclick="entregue(${p.id})">Aluno Entregou</button>
-<button onclick="revelia(${p.id})">Julgar à Revelia</button>
+<button onclick="revelia(${p.id})">Revelia</button>
 <button onclick="excluir(${p.id})">Excluir</button>
-
 `:""}
 
 ${p.fase==="aguardando"?`
-
 <button onclick="registrarFIOD(${p.id})">Registrar FIOD</button>
-
 `:""}
 
 ${p.fase==="fiod"?`
-
-<button onclick="encerrar(${p.id})">Encerrar Processo</button>
-
+<button onclick="encerrar(${p.id})">Encerrar</button>
 `:""}
 
 </div>
@@ -354,78 +313,47 @@ ${p.fase==="fiod"?`
 
 });
 
-}
-
 dashboard.innerHTML=`
 
-<div class="box">🔴 Vencidos<br>${cont.v}</div>
-<div class="box">🟡 Vence Hoje<br>${cont.h}</div>
-<div class="box">🟠 Vence Amanhã<br>${cont.a}</div>
-<div class="box">🟢 Em Prazo<br>${cont.p}</div>
-<div class="box">🔵 Aguardando FIOD<br>${cont.ag}</div>
-<div class="box">🟣 FIOD<br>${cont.f}</div>
-<div class="box">⚫ Encerrados<br>${cont.e}</div>
+<div class="box">Vencidos<br>${cont.v}</div>
+<div class="box">Vence Hoje<br>${cont.h}</div>
+<div class="box">Em Prazo<br>${cont.p}</div>
+<div class="box">Aguardando FIOD<br>${cont.ag}</div>
+<div class="box">FIOD<br>${cont.f}</div>
+<div class="box">Encerrados<br>${cont.e}</div>
 
 `;
 
 }
 
-function limparBusca(){
-
-document.getElementById("busca").value="";
-carregar();
-
-}
-
 function entregue(id){
-
 let dados=JSON.parse(localStorage.getItem("proc"));
-
 dados.find(x=>x.id===id).fase="aguardando";
-
 localStorage.setItem("proc",JSON.stringify(dados));
-
 carregar();
-
 }
 
 function revelia(id){
-
 let dados=JSON.parse(localStorage.getItem("proc"));
-
 dados.find(x=>x.id===id).fase="aguardando";
-
 localStorage.setItem("proc",JSON.stringify(dados));
-
 carregar();
-
 }
 
 function registrarFIOD(id){
-
 let dados=JSON.parse(localStorage.getItem("proc"));
-
 let p=dados.find(x=>x.id===id);
-
 p.fiodPrazo=prazoUtil(new Date().toISOString().split("T")[0]);
 p.fase="fiod";
-
 localStorage.setItem("proc",JSON.stringify(dados));
-
 carregar();
-
 }
 
 function encerrar(id){
-
 let dados=JSON.parse(localStorage.getItem("proc"));
-
 dados.find(x=>x.id===id).fase="encerrado";
-
 localStorage.setItem("proc",JSON.stringify(dados));
-
 carregar();
-
 }
 
 function excluir(id){
@@ -433,7 +361,6 @@ function excluir(id){
 if(!confirm("Excluir registro?")) return;
 
 let dados=JSON.parse(localStorage.getItem("proc"));
-
 dados=dados.filter(p=>p.id!==id);
 
 localStorage.setItem("proc",JSON.stringify(dados));
@@ -446,13 +373,6 @@ function exportarBackup(){
 
 let dados=localStorage.getItem("proc");
 
-if(!dados){
-
-alert("Nenhum dado para exportar.");
-return;
-
-}
-
 let blob=new Blob([dados],{type:"application/json"});
 
 let url=URL.createObjectURL(blob);
@@ -463,35 +383,21 @@ a.href=url;
 a.download="backup_sistema.json";
 a.click();
 
-URL.revokeObjectURL(url);
-
 }
 
 function importarBackup(event){
 
 let arquivo=event.target.files[0];
 
-if(!arquivo) return;
-
 let leitor=new FileReader();
 
 leitor.onload=function(e){
-
-try{
 
 let dadosImportados=JSON.parse(e.target.result);
 
 localStorage.setItem("proc",JSON.stringify(dadosImportados));
 
-alert("Backup restaurado com sucesso!");
-
 carregar();
-
-}catch{
-
-alert("Erro ao importar arquivo.");
-
-}
 
 };
 
