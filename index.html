@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema Disciplinar</title>
 
+<link rel="icon" href="brasao.png">
+<link rel="apple-touch-icon" sizes="180x180" href="brasao.png">
+
 <style>
 :root{
 --verde:#2e3b2f;
@@ -20,6 +23,8 @@ margin:0;
 font-family:Arial;
 background:var(--cinza);
 }
+
+/* LOGIN */
 
 #login{
 display:flex;
@@ -51,7 +56,14 @@ background:var(--verde);
 color:white;
 font-weight:bold;
 border:none;
+cursor:pointer;
 }
+
+button:hover{
+opacity:0.9;
+}
+
+/* APP */
 
 #app{display:none;padding:15px;}
 
@@ -61,6 +73,7 @@ color:white;
 padding:10px;
 border-radius:6px;
 text-align:center;
+font-weight:bold;
 }
 
 .dashboard{
@@ -93,18 +106,31 @@ border-radius:6px;
 .prazo{border-left:6px solid gold;}
 .aguardando{border-left:6px solid var(--azul);}
 .fiod{border-left:6px solid var(--roxo);}
+
 </style>
 </head>
 <body>
 
+<!-- LOGIN -->
 <div id="login">
 <div class="login-box">
-<h2>Controle Disciplinar</h2>
+
+<div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+<img src="brasao.png" style="width:45px;">
+<h2 style="margin:0;">Controle Disciplinar</h2>
+</div>
+
 <input type="password" id="senha" placeholder="Digite a senha">
 <button onclick="entrar()">Entrar</button>
+
+<div style="color:#8b0000;font-weight:bold;margin-top:10px;">
+Acesso restrito – uso interno
+</div>
+
 </div>
 </div>
 
+<!-- APP -->
 <div id="app">
 
 <div class="topbar">Painel Disciplinar</div>
@@ -117,7 +143,16 @@ border-radius:6px;
 
 <div class="dashboard" id="dashboard"></div>
 
-<input id="busca" placeholder="Buscar por Nr ou Nome" onkeyup="carregar()">
+<div style="margin-top:10px;">
+<button onclick="modo='ativos';carregar()">Ver Ativos</button>
+<button onclick="modo='historico';carregar()">Ver Histórico</button>
+</div>
+
+<div style="display:flex;gap:5px;margin-top:10px;">
+<input id="busca" placeholder="Buscar por Nr ou Nome">
+<button onclick="carregar()">Buscar</button>
+<button onclick="limparBusca()" style="background:#8b0000;">Limpar</button>
+</div>
 
 <h3>Novo Registro FAFD</h3>
 <input id="nr" placeholder="Nr do Aluno">
@@ -133,11 +168,12 @@ border-radius:6px;
 <script>
 
 const senhaCorreta="1234";
+let modo="ativos";
 
 function entrar(){
 if(document.getElementById("senha").value===senhaCorreta){
-login.style.display="none";
-app.style.display="block";
+document.getElementById("login").style.display="none";
+document.getElementById("app").style.display="block";
 carregar();
 }else alert("Senha incorreta");
 }
@@ -208,7 +244,11 @@ if(p.fase==="aguardando") cont.ag++;
 if(p.fase==="fiod") cont.f++;
 if(p.fase==="encerrado") cont.e++;
 
+if(modo==="ativos" && p.fase==="encerrado") return;
+if(modo==="historico" && p.fase!=="encerrado") return;
+
 let classe="prazo";
+
 if(p.fase==="fafd"){
 if(hoje>p.fafPrazo) classe="vencido";
 else if(p.fafPrazo===hoje) classe="venceHoje";
@@ -290,6 +330,11 @@ if(!confirm("Excluir registro?")) return;
 let dados=JSON.parse(localStorage.getItem("proc"));
 dados=dados.filter(p=>p.id!==id);
 localStorage.setItem("proc",JSON.stringify(dados));
+carregar();
+}
+
+function limparBusca(){
+document.getElementById("busca").value="";
 carregar();
 }
 
