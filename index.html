@@ -5,14 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema Disciplinar</title>
 
-<link rel="icon" href="brasao.png">
-<link rel="apple-touch-icon" sizes="180x180" href="brasao.png">
-
 <style>
 :root{
 --verde:#2e3b2f;
---verdeEscuro:#1c251d;
---dourado:#c6a052;
 --vermelho:#8b0000;
 --laranja:#d17a00;
 --azul:#004d80;
@@ -26,14 +21,12 @@ font-family:Arial;
 background:var(--cinza);
 }
 
-/* LOGIN */
-
 #login{
 display:flex;
 justify-content:center;
 align-items:center;
 height:100vh;
-background:var(--verdeEscuro);
+background:var(--verde);
 }
 
 .login-box{
@@ -43,22 +36,9 @@ width:95%;
 max-width:400px;
 border-radius:8px;
 text-align:center;
-box-shadow:0 0 20px rgba(0,0,0,0.4);
 }
 
-.titulo{
-display:flex;
-align-items:center;
-justify-content:center;
-gap:10px;
-margin-bottom:10px;
-}
-
-.titulo img{ width:45px; }
-
-h2{ margin:0; color:var(--verde); }
-
-input{
+input, button{
 width:100%;
 padding:8px;
 margin:6px 0;
@@ -67,40 +47,20 @@ border:1px solid #ccc;
 }
 
 button{
-width:100%;
-padding:8px;
-margin-top:6px;
-border:none;
-border-radius:5px;
 background:var(--verde);
 color:white;
 font-weight:bold;
-cursor:pointer;
+border:none;
 }
 
-button:hover{
-background:var(--dourado);
-color:black;
-}
-
-.alerta{
-font-size:12px;
-color:var(--vermelho);
-font-weight:bold;
-margin-top:5px;
-}
-
-/* APP */
-
-#app{ display:none; padding:15px;}
+#app{display:none;padding:15px;}
 
 .topbar{
 background:var(--verde);
 color:white;
-padding:12px;
+padding:10px;
 border-radius:6px;
 text-align:center;
-font-weight:bold;
 }
 
 .dashboard{
@@ -118,7 +78,6 @@ padding:8px;
 border-radius:6px;
 text-align:center;
 font-size:13px;
-box-shadow:0 2px 5px rgba(0,0,0,0.1);
 }
 
 .card{
@@ -126,62 +85,45 @@ background:white;
 padding:10px;
 margin-top:8px;
 border-radius:6px;
-box-shadow:0 2px 5px rgba(0,0,0,0.1);
 }
 
-.vencido{ border-left:6px solid var(--vermelho); }
-.amanha{ border-left:6px solid var(--laranja); }
-.venceHoje{ border-left:6px solid #006400; background:#e8f5e9; }
-.prazo{ border-left:6px solid gold; }
-.aguardando{ border-left:6px solid var(--azul); }
-.fiod{ border-left:6px solid var(--roxo); }
-
-.filtro{ margin-top:10px; }
-
+.vencido{border-left:6px solid var(--vermelho);}
+.amanha{border-left:6px solid var(--laranja);}
+.venceHoje{border-left:6px solid green;background:#e8f5e9;}
+.prazo{border-left:6px solid gold;}
+.aguardando{border-left:6px solid var(--azul);}
+.fiod{border-left:6px solid var(--roxo);}
 </style>
 </head>
-
 <body>
 
-<!-- LOGIN -->
 <div id="login">
 <div class="login-box">
-
-<div class="titulo">
-<img src="brasao.png">
-<h2>CONTROLE DISCIPLINAR</h2>
-</div>
-
+<h2>Controle Disciplinar</h2>
 <input type="password" id="senha" placeholder="Digite a senha">
 <button onclick="entrar()">Entrar</button>
-
-<div class="alerta">
-Acesso restrito – uso interno
-</div>
-
 </div>
 </div>
 
-<!-- APP -->
 <div id="app">
 
 <div class="topbar">Painel Disciplinar</div>
 
-<div class="dashboard" id="dashboard"></div>
-
-<div class="filtro">
-<button onclick="modo='ativos';carregar()">Ver Ativos</button>
-<button onclick="modo='historico';carregar()">Ver Histórico</button>
-<input id="busca" placeholder="Buscar por Nr ou Nome" onkeyup="carregar()">
+<div style="margin-top:10px;">
+<button onclick="exportarBackup()">📥 Exportar Backup</button>
+<button onclick="document.getElementById('importarArquivo').click()">📤 Importar Backup</button>
+<input type="file" id="importarArquivo" style="display:none" accept=".json" onchange="importarBackup(event)">
 </div>
 
-<h3>Novo Registro FAFD</h3>
+<div class="dashboard" id="dashboard"></div>
 
+<input id="busca" placeholder="Buscar por Nr ou Nome" onkeyup="carregar()">
+
+<h3>Novo Registro FAFD</h3>
 <input id="nr" placeholder="Nr do Aluno">
 <input id="nome" placeholder="Nome">
 <input id="turma" placeholder="Turma">
 <input type="date" id="data">
-
 <button onclick="adicionar()">Registrar FAFD</button>
 
 <div id="lista"></div>
@@ -191,12 +133,11 @@ Acesso restrito – uso interno
 <script>
 
 const senhaCorreta="1234";
-let modo="ativos";
 
 function entrar(){
 if(document.getElementById("senha").value===senhaCorreta){
-document.getElementById("login").style.display="none";
-document.getElementById("app").style.display="block";
+login.style.display="none";
+app.style.display="block";
 carregar();
 }else alert("Senha incorreta");
 }
@@ -219,7 +160,7 @@ return;
 
 let dados=JSON.parse(localStorage.getItem("proc")||"[]");
 
-let novo={
+dados.push({
 id:Date.now(),
 nr:nr.value,
 nome:nome.value,
@@ -227,19 +168,18 @@ turma:turma.value,
 fafPrazo:prazoUtil(data.value),
 fase:"fafd",
 fiodPrazo:null
-};
+});
 
-dados.push(novo);
 localStorage.setItem("proc",JSON.stringify(dados));
 
-nr.value=""; nome.value=""; turma.value=""; data.value="";
+nr.value="";nome.value="";turma.value="";data.value="";
 carregar();
 }
 
 function carregar(){
 let dados=JSON.parse(localStorage.getItem("proc")||"[]");
 let hoje=new Date().toISOString().split("T")[0];
-let amanha=new Date(); amanha.setDate(amanha.getDate()+1);
+let amanha=new Date();amanha.setDate(amanha.getDate()+1);
 let amanhaStr=amanha.toISOString().split("T")[0];
 
 let buscaTexto=document.getElementById("busca").value.toLowerCase();
@@ -248,14 +188,7 @@ let lista=document.getElementById("lista");
 let dashboard=document.getElementById("dashboard");
 
 lista.innerHTML="";
-
 let cont={v:0,h:0,a:0,p:0,ag:0,f:0,e:0};
-
-dados.sort((a,b)=>{
-let prazoA=a.fase==="fiod"?a.fiodPrazo:a.fafPrazo;
-let prazoB=b.fase==="fiod"?b.fiodPrazo:b.fafPrazo;
-return prazoA.localeCompare(prazoB);
-});
 
 dados.forEach(p=>{
 
@@ -270,15 +203,12 @@ else if(p.fafPrazo===hoje) cont.h++;
 else if(p.fafPrazo===amanhaStr) cont.a++;
 else cont.p++;
 }
+
 if(p.fase==="aguardando") cont.ag++;
 if(p.fase==="fiod") cont.f++;
 if(p.fase==="encerrado") cont.e++;
 
-if(modo==="ativos" && p.fase==="encerrado") return;
-if(modo==="historico" && p.fase!=="encerrado") return;
-
 let classe="prazo";
-
 if(p.fase==="fafd"){
 if(hoje>p.fafPrazo) classe="vencido";
 else if(p.fafPrazo===hoje) classe="venceHoje";
@@ -291,10 +221,9 @@ lista.innerHTML+=`
 <div class="card ${classe}">
 <strong>Nr ${p.nr}</strong><br>
 ${p.nome} - ${p.turma}<br>
-
-${p.fase==="fafd" ? `FAFD vence: ${p.fafPrazo}<br>` : ""}
-${p.fase==="aguardando" ? `Status: Aguardando FIOD<br>` : ""}
-${p.fase==="fiod" ? `FIOD vence: ${p.fiodPrazo}<br>` : ""}
+${p.fase==="fafd"?`FAFD vence: ${p.fafPrazo}<br>`:""}
+${p.fase==="aguardando"?`Status: Aguardando FIOD<br>`:""}
+${p.fase==="fiod"?`FIOD vence: ${p.fiodPrazo}<br>`:""}
 
 <br>
 
@@ -364,7 +293,35 @@ localStorage.setItem("proc",JSON.stringify(dados));
 carregar();
 }
 
-</script>
+function exportarBackup(){
+let dados = localStorage.getItem("proc");
+if(!dados){alert("Nenhum dado para exportar.");return;}
+let blob = new Blob([dados], { type: "application/json" });
+let url = URL.createObjectURL(blob);
+let a = document.createElement("a");
+a.href = url;
+a.download = "backup_sistema.json";
+a.click();
+URL.revokeObjectURL(url);
+}
 
+function importarBackup(event){
+let arquivo = event.target.files[0];
+if(!arquivo) return;
+let leitor = new FileReader();
+leitor.onload = function(e){
+try{
+let dadosImportados = JSON.parse(e.target.result);
+localStorage.setItem("proc", JSON.stringify(dadosImportados));
+alert("Backup restaurado com sucesso!");
+carregar();
+}catch{
+alert("Erro ao importar arquivo.");
+}
+};
+leitor.readAsText(arquivo);
+}
+
+</script>
 </body>
 </html>
