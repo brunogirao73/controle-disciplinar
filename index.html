@@ -102,7 +102,9 @@ border-radius:6px;
 text-align:center;
 font-weight:bold;
 }
-
+<button onclick="backupEmergencia()" style="background:#8b0000;">
+Backup Emergência
+</button>
 .dashboard{
 display:flex;
 flex-wrap:wrap;
@@ -363,7 +365,24 @@ dados=dados.filter(p=>p.id!==id);
 localStorage.setItem("proc",JSON.stringify(dados));
 carregar();
 }
+function backupEmergencia(){
+let dados = localStorage.getItem("proc");
 
+if(!dados){
+alert("Nenhum dado encontrado.");
+return;
+}
+
+let blob = new Blob([dados], { type: "application/json" });
+let url = URL.createObjectURL(blob);
+
+let a = document.createElement("a");
+a.href = url;
+a.download = "backup_seguro.json";
+a.click();
+
+URL.revokeObjectURL(url);
+}
 </script>
 
 </body>
