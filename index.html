@@ -6,6 +6,7 @@
 <title>Controle Disciplinar</title>
 
 <link rel="icon" href="brasao.png">
+<link rel="apple-touch-icon" href="brasao.png">
 
 <style>
 
@@ -23,6 +24,8 @@ margin:0;
 font-family:Arial;
 background:var(--cinza);
 }
+
+/* LOGIN */
 
 #login{
 display:flex;
@@ -57,6 +60,8 @@ border:none;
 cursor:pointer;
 }
 
+/* APP */
+
 #app{
 display:none;
 padding:15px;
@@ -80,12 +85,20 @@ margin-top:10px;
 
 .box{
 flex:1;
-min-width:120px;
+min-width:110px;
 background:white;
-padding:8px;
+padding:10px;
 border-radius:6px;
 text-align:center;
+font-size:13px;
+font-weight:bold;
 }
+
+.vencido{border-left:8px solid red;}
+.venceHoje{border-left:8px solid orange;}
+.prazo{border-left:8px solid green;}
+.aguardando{border-left:8px solid blue;}
+.fiod{border-left:8px solid purple;}
 
 .card{
 background:white;
@@ -94,18 +107,15 @@ margin-top:8px;
 border-radius:6px;
 }
 
-.vencido{border-left:6px solid var(--vermelho);}
-.amanha{border-left:6px solid var(--laranja);}
-.venceHoje{border-left:6px solid green;background:#e8f5e9;}
-.prazo{border-left:6px solid gold;}
-.aguardando{border-left:6px solid var(--azul);}
-.fiod{border-left:6px solid var(--roxo);}
-
 </style>
 </head>
+
 <body>
 
+<!-- LOGIN -->
+
 <div id="login">
+
 <div class="login-box">
 
 <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
@@ -114,6 +124,7 @@ border-radius:6px;
 </div>
 
 <input type="password" id="senha" placeholder="Senha">
+
 <button onclick="entrar()">Entrar</button>
 
 <div style="color:#8b0000;font-weight:bold;">
@@ -121,39 +132,42 @@ Acesso restrito – uso interno
 </div>
 
 </div>
+
 </div>
+
+<!-- APP -->
 
 <div id="app">
 
 <div class="topbar">Painel Disciplinar</div>
 
-<div style="margin-top:10px;">
-<button onclick="exportarBackup()">Exportar Backup</button>
-<button onclick="document.getElementById('importarArquivo').click()">Importar Backup</button>
+<div style="margin-top:10px;display:flex;gap:5px;flex-wrap:wrap;">
+<button onclick="exportarBackup()">💾 Exportar Backup</button>
+<button onclick="document.getElementById('importarArquivo').click()">📂 Importar Backup</button>
 <input type="file" id="importarArquivo" style="display:none" accept=".json" onchange="importarBackup(event)">
 </div>
 
 <div class="dashboard" id="dashboard"></div>
 
 <div style="margin-top:10px;">
-<button onclick="modo='ativos';carregar()">Ver Ativos</button>
-<button onclick="modo='historico';carregar()">Ver Histórico</button>
+<button onclick="modo='ativos';carregar()">Ativos</button>
+<button onclick="modo='historico';carregar()">Histórico</button>
 </div>
 
 <div style="display:flex;gap:5px;margin-top:10px;">
-<input id="busca" placeholder="Buscar por Nr ou Nome">
-<button onclick="buscar()">Buscar</button>
+<input id="busca" placeholder="Buscar aluno">
+<button onclick="buscar()">🔎 Buscar</button>
 <button onclick="limparBusca()" style="background:#8b0000;">Limpar</button>
 </div>
 
 <h3>Novo Registro FAFD</h3>
 
-<input id="nr" placeholder="Nr do Aluno">
+<input id="nr" placeholder="Nr do aluno">
 <input id="nome" placeholder="Nome">
 <input id="turma" placeholder="Turma">
 <input type="date" id="data">
 
-<button onclick="adicionar()">Registrar FAFD</button>
+<button onclick="registrarFAFD()">Registrar FAFD</button>
 
 <div id="lista"></div>
 
@@ -168,8 +182,8 @@ function entrar(){
 
 if(document.getElementById("senha").value===senhaCorreta){
 
-document.getElementById("login").style.display="none";
-document.getElementById("app").style.display="block";
+login.style.display="none";
+app.style.display="block";
 
 carregar();
 
@@ -196,7 +210,7 @@ return d.toISOString().split("T")[0];
 
 }
 
-function adicionar(){
+function registrarFAFD(){
 
 let nr=document.getElementById("nr").value;
 let nome=document.getElementById("nome").value;
@@ -205,7 +219,7 @@ let data=document.getElementById("data").value;
 
 if(!nr||!nome||!data){
 
-alert("Preencha Nr, Nome e Data");
+alert("Preencha os campos obrigatórios");
 
 return;
 
@@ -214,6 +228,7 @@ return;
 let dados=JSON.parse(localStorage.getItem("proc")||"[]");
 
 dados.push({
+
 id:Date.now(),
 nr:nr,
 nome:nome,
@@ -221,37 +236,16 @@ turma:turma,
 fafPrazo:prazoUtil(data),
 fase:"fafd",
 fiodPrazo:null
+
 });
 
 localStorage.setItem("proc",JSON.stringify(dados));
 
-document.getElementById("nr").value="";
-document.getElementById("nome").value="";
-document.getElementById("turma").value="";
-document.getElementById("data").value="";
+nr.value="";
+nome.value="";
+turma.value="";
+data.value="";
 
-carregar();
-
-}
-
-function buscar(){
-
-let texto=document.getElementById("busca").value.toLowerCase();
-
-let dados=JSON.parse(localStorage.getItem("proc")||"[]");
-
-let filtrados=dados.filter(p=>{
-let combinado=(p.nr+" "+p.nome).toLowerCase();
-return combinado.includes(texto);
-});
-
-mostrarLista(filtrados);
-
-}
-
-function limparBusca(){
-
-document.getElementById("busca").value="";
 carregar();
 
 }
@@ -264,61 +258,104 @@ mostrarLista(dados);
 
 }
 
+function buscar(){
+
+let texto=document.getElementById("busca").value.toLowerCase();
+
+let dados=JSON.parse(localStorage.getItem("proc")||"[]");
+
+let filtrados=dados.filter(p=>{
+
+let t=(p.nr+" "+p.nome).toLowerCase();
+
+return t.includes(texto);
+
+});
+
+mostrarLista(filtrados);
+
+}
+
+function limparBusca(){
+
+busca.value="";
+
+carregar();
+
+}
+
 function mostrarLista(dados){
 
 let hoje=new Date().toISOString().split("T")[0];
 
 let lista=document.getElementById("lista");
+
 let dashboard=document.getElementById("dashboard");
 
 lista.innerHTML="";
 
-let cont={v:0,h:0,a:0,p:0,ag:0,f:0,e:0};
+let v=0,h=0,p=0,a=0,f=0,e=0;
 
-dados.forEach(p=>{
+dados.forEach(pessoa=>{
 
-if(modo==="ativos" && p.fase==="encerrado") return;
-if(modo==="historico" && p.fase!=="encerrado") return;
+if(modo==="ativos" && pessoa.fase==="encerrado") return;
+
+if(modo==="historico" && pessoa.fase!=="encerrado") return;
 
 let classe="prazo";
 
-if(p.fase==="fafd"){
+if(pessoa.fase==="fafd"){
 
-if(hoje>p.fafPrazo){classe="vencido";cont.v++;}
-else if(p.fafPrazo===hoje){classe="venceHoje";cont.h++;}
-else{classe="prazo";cont.p++;}
+if(hoje>pessoa.fafPrazo){classe="vencido";v++;}
+
+else if(hoje===pessoa.fafPrazo){classe="venceHoje";h++;}
+
+else{classe="prazo";p++;}
 
 }
 
-if(p.fase==="aguardando"){classe="aguardando";cont.ag++;}
-if(p.fase==="fiod"){classe="fiod";cont.f++;}
-if(p.fase==="encerrado"){cont.e++;}
+if(pessoa.fase==="aguardando"){classe="aguardando";a++;}
+
+if(pessoa.fase==="fiod"){classe="fiod";f++;}
+
+if(pessoa.fase==="encerrado"){e++;}
 
 lista.innerHTML+=`
 
 <div class="card ${classe}">
 
-<strong>Nr ${p.nr}</strong><br>
-${p.nome} - ${p.turma}<br>
+<strong>Nr ${pessoa.nr}</strong><br>
 
-${p.fase==="fafd"?`FAFD vence: ${p.fafPrazo}<br>`:""}
-${p.fase==="aguardando"?`Aguardando FIOD<br>`:""}
-${p.fase==="fiod"?`FIOD vence: ${p.fiodPrazo}<br>`:""}
+${pessoa.nome} - ${pessoa.turma}<br>
+
+${pessoa.fase==="fafd"?`FAFD vence: ${pessoa.fafPrazo}<br>`:""}
+
+${pessoa.fase==="aguardando"?`Aguardando FIOD<br>`:""}
+
+${pessoa.fase==="fiod"?`FIOD vence: ${pessoa.fiodPrazo}<br>`:""}
 
 <br>
 
-${p.fase==="fafd"?`
-<button onclick="entregue(${p.id})">Aluno Entregou</button>
-<button onclick="revelia(${p.id})">Revelia</button>
-<button onclick="excluir(${p.id})">Excluir</button>
+${pessoa.fase==="fafd"?`
+
+<button onclick="entregue(${pessoa.id})">Aluno entregou</button>
+
+<button onclick="revelia(${pessoa.id})">Revelia</button>
+
+<button onclick="excluir(${pessoa.id})">Excluir</button>
+
 `:""}
 
-${p.fase==="aguardando"?`
-<button onclick="registrarFIOD(${p.id})">Registrar FIOD</button>
+${pessoa.fase==="aguardando"?`
+
+<button onclick="registrarFIOD(${pessoa.id})">Registrar FIOD</button>
+
 `:""}
 
-${p.fase==="fiod"?`
-<button onclick="encerrar(${p.id})">Encerrar</button>
+${pessoa.fase==="fiod"?`
+
+<button onclick="encerrar(${pessoa.id})">Encerrar</button>
+
 `:""}
 
 </div>
@@ -329,45 +366,72 @@ ${p.fase==="fiod"?`
 
 dashboard.innerHTML=`
 
-<div class="box">Vencidos<br>${cont.v}</div>
-<div class="box">Vence Hoje<br>${cont.h}</div>
-<div class="box">Em Prazo<br>${cont.p}</div>
-<div class="box">Aguardando FIOD<br>${cont.ag}</div>
-<div class="box">FIOD<br>${cont.f}</div>
-<div class="box">Encerrados<br>${cont.e}</div>
+<div class="box vencido">🔴 Vencidos<br>${v}</div>
+
+<div class="box venceHoje">🟡 Vence Hoje<br>${h}</div>
+
+<div class="box prazo">🟢 Em Prazo<br>${p}</div>
+
+<div class="box aguardando">🔵 Aguardando<br>${a}</div>
+
+<div class="box fiod">🟣 FIOD<br>${f}</div>
+
+<div class="box">⚫ Encerrados<br>${e}</div>
 
 `;
 
 }
 
 function entregue(id){
+
 let dados=JSON.parse(localStorage.getItem("proc"));
+
 dados.find(x=>x.id===id).fase="aguardando";
+
 localStorage.setItem("proc",JSON.stringify(dados));
+
 carregar();
+
 }
 
 function revelia(id){
+
 let dados=JSON.parse(localStorage.getItem("proc"));
+
 dados.find(x=>x.id===id).fase="aguardando";
+
 localStorage.setItem("proc",JSON.stringify(dados));
+
 carregar();
+
 }
 
 function registrarFIOD(id){
+
 let dados=JSON.parse(localStorage.getItem("proc"));
+
 let p=dados.find(x=>x.id===id);
+
 p.fiodPrazo=prazoUtil(new Date().toISOString().split("T")[0]);
+
 p.fase="fiod";
+
 localStorage.setItem("proc",JSON.stringify(dados));
+
 carregar();
+
 }
 
 function encerrar(id){
+
 let dados=JSON.parse(localStorage.getItem("proc"));
+
 dados.find(x=>x.id===id).fase="encerrado";
+
 localStorage.setItem("proc",JSON.stringify(dados));
+
 carregar();
+
 }
 
 function excluir(id){
@@ -395,7 +459,9 @@ let url=URL.createObjectURL(blob);
 let a=document.createElement("a");
 
 a.href=url;
+
 a.download="backup_sistema.json";
+
 a.click();
 
 }
